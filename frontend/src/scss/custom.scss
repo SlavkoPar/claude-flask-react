@@ -1,0 +1,244 @@
+/* make the customizations */
+// $theme-colors: (
+//   'info': tomato,
+//   'danger': teal
+// );
+
+/* import bootstrap to set changes */
+@import '~bootstrap/scss/bootstrap';
+
+//////////////////////////////////////
+/// General
+
+.knowledge-row {
+  background-color: $gray-100;
+  color: #333;
+}
+
+// for Questions and Answers
+.slave-row {
+  background-color: $gray-100;
+  color: #333;
+}
+
+.knowledge-form {
+  background-color: $indigo-200;
+  color: #ddd;
+}
+
+////////////////////////////
+/// Category 
+
+.categories {
+  color: $indigo-300;
+}
+
+.categories-border {
+  border: 3px solid $indigo-100;
+  border-radius: 3px;
+}
+
+.category-bg {
+  background-color: $indigo-100 !important;
+}
+
+.category-row {
+  @extend .knowledge-row; // Inherit all properties from .knowledge-row
+  background-color: $indigo-100;
+  color: #fff;
+
+  .title {
+    background-color: #eee;
+    // background-color: $indigo-100;
+    color: $indigo-700;
+    text-decoration: none;
+  }
+
+  &.selected {
+    background-color: $indigo-300;
+    color: #fff;
+  }
+
+  // button { // for expand/collapse icon
+  //   background-color: $indigo-100;
+  //   border: none;
+  //   color: inherit;
+  //   padding: 0;
+  //   cursor: pointer;
+  // }
+}
+
+.accordion-header > button {
+  background-color: $indigo-100 !important;
+}
+
+.category-spinner {
+  color: $indigo-500
+}
+
+.category-form {
+  @extend .knowledge-form; // Inherit all properties from .knowledge-form
+  background-color: $indigo-200;
+  color: #ddd;
+
+  .form-label {
+    color: rgba(33, 37, 41, 0.75);
+    font-size: 14px;
+  }
+}
+
+//////////////////
+/// Questions
+
+.questions {
+  color: $yellow-500;
+}
+
+.question-row {
+  @extend .slave-row; // Inherit all properties from .slave-row
+  background-color: $yellow-400;
+  color: #fff;
+  border: 1px solid $yellow-200;
+  border-radius: 1px;
+
+  .selected {
+    background-color: $yellow-500;
+    color: #fff;
+  }
+
+  .title {
+    background-color: $yellow-100;
+    color: $gray-700;
+    text-decoration: none;
+  }
+}
+
+.question-spinner {
+  color: $yellow-500
+}
+
+.question-form {
+  @extend .knowledge-form; // Inherit all properties from .knowledge-form
+  background-color: $yellow-500;
+  color: #ddd;
+
+  .form-label {
+    color: $indigo-700;
+    font-size: 14px;
+  }
+}
+
+///////////////////
+/// related filters
+
+.related-filters {
+  background-color: $blue-100;
+  color: #ddd;
+}
+
+.related-filter-row {
+  background-color: $blue-300;
+  color: #ddd;
+  font-size: 14px;
+
+}
+
+.related-filter-row .title {
+  background-color: $blue-200;
+  color: #ddd;
+  text-decoration: none;
+}
+
+
+////////////////////////////
+/// Group
+
+.groups {
+  color: $teal-300;
+}
+
+.groups-border {
+  border: 3px solid $teal-200;
+  border-radius: 3px;
+}
+
+.group-bg {
+  background-color: $teal-200 !important;
+}
+
+.group-row {
+  @extend .knowledge-row; // Inherit all properties from .knowledge-row
+  background-color: $teal-200;
+  color: #fff;
+
+  .selected {
+    background-color: $teal-400;
+    color: #fff;
+  }
+
+  .title {
+    background-color: $teal-100;
+    // background-color: $teal-100;
+    color: $teal-700;
+    text-decoration: none;
+  }
+}
+
+
+
+.group-spinner {
+  color: $teal-500
+}
+
+.group-form {
+  @extend .knowledge-form; // Inherit all properties from .knowledge-form 
+  background-color: $teal-200;
+  color: #ddd;
+
+  .form-label {
+    color: rgba(33, 37, 41, 0.75);
+    font-size: 14px;
+  }
+}
+
+
+
+/////////////////////////////
+/// Answer
+.answers {
+  color: $cyan-500;
+}
+
+.answer-row {
+  @extend .slave-row; // Inherit all properties from .slave-row
+  background-color: $cyan-400;
+  color: #fff;
+  border: 1px solid $cyan-200;
+  border-radius: 1px;
+}
+
+.answer-row-selected {
+  background-color: $cyan-500;
+  color: #fff;
+}
+
+.answer-row-title {
+  background-color: $cyan-100;
+  color: $gray-700;
+  text-decoration: none;
+}
+
+.answer-spinner {
+  color: $cyan-500
+}
+
+.answer-form {
+  @extend .knowledge-form; // Inherit all properties from .knowledge-form
+  background-color: $cyan-500;
+  color: #ddd;
+
+  .form-label {
+    color: $teal-700;
+    font-size: 14px;
+  }
+}

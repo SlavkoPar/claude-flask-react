@@ -1,24 +1,48 @@
 import { useState } from 'react'
+import { Routes, Route } from 'react-router-dom'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
+import { useAuth } from './context/AuthContext'
 import './App.css'
-import Chat from "./Chat";
+import './style.css'
 
-function App() {
+function AuthBar() {
+  const { user, logout } = useAuth()
+  if (user === undefined) return null
+  if (!user) {
+    return (
+      <div style={{ textAlign: 'right', padding: '0.75rem 1.5rem' }}>
+        <a href="/auth/google" className="btn btn-outline-primary btn-sm">
+          Sign in with Google
+        </a>
+      </div>
+    )
+  }
+  return (
+    <div style={{ textAlign: 'right', padding: '0.75rem 1.5rem' }}>
+      <span style={{ marginRight: '1rem' }}>{user.name}</span>
+      <button className="btn btn-outline-secondary btn-sm" onClick={logout}>
+        Sign out
+      </button>
+    </div>
+  )
+}
+
+function Home() {
   const [count, setCount] = useState(0)
 
   return (
     <>
       <section id="center">
-        <div className="hero">
+        {/* <div className="hero">
           <img src={heroImg} className="base" width="170" height="179" alt="" />
           <img src={reactLogo} className="framework" alt="React logo" />
           <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+        </div> */}
         <div>
           <h1>Get started</h1>
-           <Chat />
+           {/* <Chat /> */}
         </div>
         <button
           type="button"
@@ -38,7 +62,7 @@ function App() {
           </svg>
           <h2>Documentation</h2>
           <p>Your questions, answered</p>
-          <ul>
+          {/* <ul>
             <li>
               <a href="https://vite.dev/" target="_blank">
                 <img className="logo" src={viteLogo} alt="" />
@@ -51,9 +75,9 @@ function App() {
                 Learn more
               </a>
             </li>
-          </ul>
+          </ul> */}
         </div>
-        <div id="social">
+        {/* <div id="social">
           <svg className="icon" role="presentation" aria-hidden="true">
             <use href="/icons.svg#social-icon"></use>
           </svg>
@@ -109,11 +133,22 @@ function App() {
               </a>
             </li>
           </ul>
-        </div>
+        </div> */}
       </section>
 
       <div className="ticks"></div>
       <section id="spacer"></section>
+    </>
+  )
+}
+
+function App() {
+  return (
+    <>
+      <AuthBar />
+      <Routes>
+        <Route path="/" element={<Home />} />
+      </Routes>
     </>
   )
 }

@@ -2,3 +2,6 @@ flask
 flask-cors
 anthropic
 python-dotenv
+werkzeug
+authlib
+requests
