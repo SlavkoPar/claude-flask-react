@@ -1,14 +1,16 @@
-# Spec: Group and Question
+# Spec: Groups with Questions
 
 ## Overview
+ For Groups maintenance, at `frontend` implement route `/groups`, as the protected route. 
+ Create react component `Group` with CRUD operations for `groups`. 
+ At `backend` implement coresponding end points. 
+ One `Group` can have many child `groups`
+
 
 ## Depends on
 - Step 1: Database setup (schema must exist)
-- Step 2: Registration (user accounts must be creatable)
-- Step 3: Login + Logout (session must be set; `/groups` must be a protected route)
+- Step 2: google-authentication (user accounts must be creatable)
 
-## Routes
-- GET /groups — render the groups list page
 
 ## Database changes
 
@@ -25,40 +27,17 @@
 | description | TEXT | Nullable |
 | created_at | TEXT | Default datetime('now') |
 
-### groups
-
-| Column | Type | Constraints |
-| --- | --- | --- |
-| id | INTEGER | Primary key, autoincrement |
-| parent_id | INTEGER | Foreign key → groups.id |
-| user_id | INTEGER | Foreign key → users.id, not null |
-| name | TEXT | Not null |
-| description | TEXT | Nullable |
-| num_of_questions | INTEGER | Default 0 |
-| created_at | TEXT | Default datetime('now') |
-
 
 ## 12. Expected Behavior
 
 
 ## Templates
-- Create templates for groups 
-   -- `templates/groups/list.html`
-   -- `templates/groups/add_group.html`
-   -- `templates/groups/edit_group.html`
-   -- `templates/groups/delete_group.html`
-
 
 ## Files to change
 - `app.py` 
-- `database\queries.py`
+
 
 ## Files to create
-   - `templates/groups/list.html`
-   - `templates/groups/add_group.html`
-   - `templates/groups/edit_group.html`
-   - `templates/groups/delete_group.html`
-
 
 ## New dependencies
 No new dependencies. 
@@ -67,28 +46,29 @@ No new dependencies.
 
 - Inserting group with invalid `user_id` → should fail (foreign key constraint)
 
-### Groups list page (the tree) — `templates/groups/list.html`
+### `Group` react component` 
+- Create `GroupList` and `GroupRow` React components. Inside `GroupRow` use `GroupList` component
 - Renders all groups as a **tree** nested by `parent_id`, ordered by name.
 - Every group item has 5px top/bottom padding.
 - Each row shows an expand/collapse toggle when it has child groups.
-- On the current user's own rows:
-  - a group with **no questions** shows an `add group` link
+  <!-- - On the current user's own rows: -->
+  - On the current row:
+  - a `group` with **no questions** shows an `add group` link
     (`/groups/add?parent=<id>`, which pre-selects the parent)
   - a group with **no child groups** shows an `add question` link
     (to the group edit page's Questions section)
-  - plus `Edit` and `Delete` (owner-scoped, from Steps 8–9)
-- The "Groups" navbar link is present (from Step 7's base.html change).
-- filter groups by name, and parent group
+  - plus `Edit` and `Delete` 
+  <!-- (owner-scoped, from Steps 8–9) -->
+- The "Groups" navbar link is present.
+- Filter `groups` by name, and parent group
 
 ## Rules for implementation
-
+- create SQL tables
 - import rows from `database/import/groups.json` and `database/import/questions.json`
     - All linked to the demo user (`user_id = 1`)
     - Preserve each group's explicit `id`
-    - Map the JSON key `parent_id` → column `parent_id`
     - Insert parents before children so foreign keys resolve
 
-- group can have many child groups
 - for each group row 
    - which has no questions, enable button for adding of child groups, text `add group`
    - enable button for expand and collapse of the child groups

@@ -1,7 +1,7 @@
 # Spec: Google Authentication
 
 ## Overview
-Implement user registration so new visitors can create a Q&A account. 
+Implement user registration, so new visitors can create a Q&A account. 
 
 After registration validate input, hashe the password, and insert a new row into the `users` table. This is the entry point for all authenticated features that follow.
 
@@ -27,17 +27,14 @@ None.
 ## New dependencies
 
 ## Rules for implementation
-- implement google authentication
-
+- implement `google authentication`
 - `app.secret_key` must be set in `app.py` for `flash()` to work (use a hardcoded dev string for now)
 - Server-side validation must check:
   1. All fields are non-empty
   2. `password == confirm_password`
   3. Email is not already registered (catch `sqlite3.IntegrityError`)
 - On any validation failure, re-render the form with a flashed error message — do not redirect
-- On success, `flash` a success message and `redirect` to `url_for('login')`
 - Use `abort(405)` if an unsupported HTTP method reaches the route
-- All templates extend `base.html`
 - Use CSS variables — never hardcode hex values
 - Use `url_for()` for every internal link — never hardcode URLs
 

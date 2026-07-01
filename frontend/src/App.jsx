@@ -1,33 +1,6 @@
 import { useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import { useAuth } from './context/AuthContext'
-import './App.css'
-import './style.css'
-
-function AuthBar() {
-  const { user, logout } = useAuth()
-  if (user === undefined) return null
-  if (!user) {
-    return (
-      <div style={{ textAlign: 'right', padding: '0.75rem 1.5rem' }}>
-        <a href="/auth/google" className="btn btn-outline-primary btn-sm">
-          Sign in with Google
-        </a>
-      </div>
-    )
-  }
-  return (
-    <div style={{ textAlign: 'right', padding: '0.75rem 1.5rem' }}>
-      <span style={{ marginRight: '1rem' }}>{user.name}</span>
-      <button className="btn btn-outline-secondary btn-sm" onClick={logout}>
-        Sign out
-      </button>
-    </div>
-  )
-}
+import NavBar from './components/NavBar'
 
 function Home() {
   const [count, setCount] = useState(0)
@@ -145,7 +118,7 @@ function Home() {
 function App() {
   return (
     <>
-      <AuthBar />
+      <NavBar />
       <Routes>
         <Route path="/" element={<Home />} />
       </Routes>
