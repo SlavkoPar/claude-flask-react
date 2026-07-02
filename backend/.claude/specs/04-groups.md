@@ -2,8 +2,9 @@
 
 ## Overview
  One `Group` can have many child `groups`
- For Groups maintenance, at `frontend` implement route `/groups`, as the protected route. 
- Create react component `Group` with CRUD operations for `groups`. 
+ For Groups maintenance, at `frontend` implement route `/groups`, as the protected route, 
+ create jsx page `src/pages/Groups.jsx`, and link to it
+ Create react component `Group` for CRUD operations for `/groups`. 
  At `backend` implement coresponding end points. 
 
 
@@ -14,8 +15,7 @@
 
 ## Database changes
 
-## Create table
-
+## Create table `groups`
 
 ### groups
 
@@ -26,23 +26,21 @@
 | user_id | INTEGER | Foreign key → users.id, not null |
 | name | TEXT | Not null |
 | description | TEXT | Nullable |
-| num_of_questions | INTEGER | Default 0 |
+| has_child_groups | BOOLEAN | Default False 
 | created_at | TEXT | Default datetime('now') |
 
 
 ## 12. Expected Behavior
-
-
-## Templates
 
 ## Files to change
 - `app.py` 
 
 
 ## Files to create
-- `src/components/group/GroupList.jsx`
-- `src/components/group/GroupRow.jsx`
-- `src/pages/Groups.js`
+- `src/pages/Groups.jsx`
+- `src/components/group/Group.jsx`
+- `src/components/group/List.jsx`
+- `src/components/group/Row.jsx`
 
 ## New dependencies
 No new dependencies. 
@@ -51,47 +49,43 @@ No new dependencies.
 
 - Inserting group with invalid `user_id` → should fail (foreign key constraint)
 
-
-
 ## Rules for implementation
   ### backend
-  #### create SQL table
   #### import rows from `database/import/groups.json`
       - All linked to the demo user (`user_id = 1`)
       - Preserve each group's explicit `id`
       - Insert parents before children so foreign keys resolve
 
-  #### Validation rules for POST and PUT:
+  #### Validation rules for Group Form, for POST and PUT:
     - `name`: required, non-blank after `strip()`
     - `parent_id`: blank → `None`; otherwise must be the id of one of the groups, else an error
     - `description`: optional; `strip()`; store `None` if blank
-    - On any validation error, return the message and the
-      submitted values pre-filled
+    - On any validation error, return the message and the submitted values pre-filled
   
   ### frontend
-  - one `group` can have many questions
-  - count num_of_questions
   - put link `Groups` to navbar
   - Filter `groups` by name, and parent group
   - set top and bottom paddings, for every group item,  to 5px
-  - for `Group` form create section `Questions`  always visible
+  - for `Group` form create section `Questions` always visible
 
   - create page `src/pages/Groups.jsx`
   - create javascript model `src/model/Group.ts`
-  - create javascript model `src/model/GroupRow.ts` with fields: `id`, `name`, `description`, `num_of_questions`
+  - create javascript model `src/model/GroupRow.ts` with fields: `id`, `name`, `description`, `has_child_groups`
 
-  - Create `GroupList` and `GroupRow` React components. Inside `GroupRow` use `GroupList` component.
+  - Create groups `List` and `Row` React components. Inside of `Row` use `List` component.
   - Render all groups as a **tree** nested by `parent_id`, ordered by name.
+  - show all groups regardless of creator
+  -- only author can delete group that he/she created
   - use model `GroupRow` for group row
   - Every group's item has 5px top/bottom padding.
-  - Each row shows an expand/collapse toggle when it has child groups.
+  - Each row show an expand/collapse icon, to toggle when its child groups.
   - On the current row:
     -- a `group` with **no questions** shows an `add group` link
       (`/groups/add?parent=<id>`, which pre-selects the parent)
-    -- a group with **no child groups** shows an `add question` link
-      (to the group edit page's Questions section)
     -- `edit link` attach to name
+    -- `has_child_groups` relate to `expand` icon
     -- show button `Delete` 
+    -- update `has_child_groups` afer add or update group
 
 
   #### for each group row 
@@ -102,5 +96,5 @@ No new dependencies.
   
  
 ## Definition of done
-- [ ]  Groups imported from `database/import/groups.json`
+- [ ] Groups imported from `database/import/groups.json`
 - [ ] Visiting `/groups` without being logged in redirects to `/login`

@@ -170,6 +170,8 @@
   @extend .knowledge-row; // Inherit all properties from .knowledge-row
   background-color: $teal-200;
   color: #fff;
+  padding-top: 5px;
+  padding-bottom: 5px;
 
   .selected {
     background-color: $teal-400;

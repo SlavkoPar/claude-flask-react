@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { SERVER_URL } from '../config'
 
 const AuthContext = createContext()
 
@@ -6,14 +7,14 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(undefined) // undefined = loading, null = guest
 
   useEffect(() => {
-    fetch('/api/auth/me', { credentials: 'include' })
+    fetch(`${SERVER_URL}/api/auth/me`, { credentials: 'include' })
       .then(r => (r.ok ? r.json() : { user: null }))
       .then(data => setUser(data.user))
       .catch(() => setUser(null))
   }, [])
 
   const logout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    await fetch(`${SERVER_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' })
     setUser(null)
   }
 

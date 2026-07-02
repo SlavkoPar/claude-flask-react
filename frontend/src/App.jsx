@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import NavBar from './components/NavBar'
+import ProtectedRoute from './components/ProtectedRoute'
+import Login from './pages/Login'
+import Groups from './pages/Groups'
+import Group from './components/group/Group'
 
 function Home() {
   const [count, setCount] = useState(0)
@@ -121,6 +125,10 @@ function App() {
       <NavBar />
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/groups" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
+        <Route path="/groups/add" element={<ProtectedRoute><Group /></ProtectedRoute>} />
+        <Route path="/groups/:id/edit" element={<ProtectedRoute><Group /></ProtectedRoute>} />
       </Routes>
     </>
   )

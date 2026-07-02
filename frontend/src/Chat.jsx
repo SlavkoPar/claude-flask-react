@@ -1,6 +1,5 @@
 import { useState } from "react";
-
-const BACKEND_URL = "http://localhost:5000"; // change for production
+import { SERVER_URL } from "./config";
 
 export default function Chat() {
   const [messages, setMessages] = useState([]);
@@ -16,7 +15,7 @@ export default function Chat() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${BACKEND_URL}/api/chat`, {
+      const res = await fetch(`${SERVER_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: newMessages }),
