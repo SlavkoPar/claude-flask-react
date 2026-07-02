@@ -170,8 +170,8 @@
   @extend .knowledge-row; // Inherit all properties from .knowledge-row
   background-color: $teal-200;
   color: #fff;
-  padding-top: 5px;
-  padding-bottom: 5px;
+  padding-top: 1px;
+  padding-bottom: 1px;
 
   .selected {
     background-color: $teal-400;
@@ -184,6 +184,48 @@
     color: $teal-700;
     text-decoration: none;
   }
+}
+
+.group-row-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.group-row-toggle {
+  width: 1.5em;
+  line-height: 1;
+  text-align: center;
+}
+
+.group-row-spacer {
+  display: inline-block;
+  width: 1.5em;
+}
+
+.group-row-description {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.85em;
+}
+
+.group-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.group-row-add-link {
+  font-size: 0.85em;
+}
+
+.group-row-error {
+  color: $red-300;
+  font-size: 0.85em;
+}
+
+.group-children {
+  margin-left: 1.5rem;
 }
 
 

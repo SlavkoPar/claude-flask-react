@@ -1,4 +1,4 @@
-# Spec: Groups with Questions
+# Spec: Groups
 
 ## Overview
  One `Group` can have many child `groups`
@@ -65,7 +65,10 @@ No new dependencies.
   ### frontend
   - put link `Groups` to navbar
   - Filter `groups` by name, and parent group
-  - set top and bottom paddings, for every group item,  to 5px
+  - set top and bottom paddings, for every group item,  to 1px
+  - remove btn-link from buttons
+  - create and use scss classes for tree 
+  - move links `add group` and `delete` to the right end of row
   - for `Group` form create section `Questions` always visible
 
   - create page `src/pages/Groups.jsx`

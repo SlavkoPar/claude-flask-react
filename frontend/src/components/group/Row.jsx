@@ -29,27 +29,29 @@ export default function Row({ group, onChange }) {
 
   return (
     <div className="group-row">
-      <div className="d-flex align-items-center gap-2">
+      <div className="group-row-content">
         {group.has_child_groups ? (
           <button
             type="button"
-            className="btn btn-sm btn-link p-0"
+            className="group-row-toggle btn btn-lg p-1"
             onClick={() => setExpanded(e => !e)}
             aria-label={expanded ? 'Collapse' : 'Expand'}
           >
             {expanded ? '▾' : '▸'}
           </button>
         ) : (
-          <span style={{ width: '1em', display: 'inline-block' }} />
+          <span className="group-row-spacer" />
         )}
         <Link to={`/groups/${group.id}/edit`} className="title">{group.name}</Link>
-        {group.description && <span className="text-muted small">{group.description}</span>}
-        <Link to={`/groups/add?parent=${group.id}`}>add group</Link>
-        <Button variant="outline-danger" size="sm" onClick={handleDelete}>Delete</Button>
+        {group.description && <span className="group-row-description">{group.description}</span>}
+        <div className="group-row-actions">
+          <Link to={`/groups/add?parent=${group.id}`} className="group-row-add-link">add group</Link>
+          <Button variant="outline-danger" size="sm" onClick={handleDelete}>Delete</Button>
+        </div>
       </div>
-      {error && <div className="text-danger small">{error}</div>}
+      {error && <div className="group-row-error">{error}</div>}
       {expanded && group.has_child_groups && (
-        <div style={{ marginLeft: '1.5rem' }}>
+        <div className="group-children">
           <List parentId={group.id} />
         </div>
       )}
