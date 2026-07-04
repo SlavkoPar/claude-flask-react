@@ -17,6 +17,7 @@ export default function NavBar() {
           <Nav className="me-auto">
             <Nav.Link as={NavLink} to="/">Home</Nav.Link>
             <Nav.Link as={NavLink} to="/groups">Groups</Nav.Link>
+            {user && <Nav.Link as={NavLink} to="/answers">Answers</Nav.Link>}
           </Nav>
           <Nav className="align-items-center gap-2">
             <Button variant="outline-secondary" size="sm" onClick={toggleTheme}>

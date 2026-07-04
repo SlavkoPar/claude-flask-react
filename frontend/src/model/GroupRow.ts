@@ -3,4 +3,5 @@ export interface GroupRow {
   name: string
   description: string | null
   has_child_groups: boolean
+  num_of_questions: number
 }

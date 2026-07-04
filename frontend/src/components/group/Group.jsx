@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom'
 import { Container, Form, Button, Alert } from 'react-bootstrap'
 import { SERVER_URL } from '../../config'
+import QuestionsSection from './QuestionsSection'
 
 export default function Group() {
   const { id } = useParams()
@@ -98,6 +99,11 @@ export default function Group() {
             onChange={e => setValues(v => ({ ...v, description: e.target.value }))}
           />
         </Form.Group>
+        {isEdit && (
+          <div className="mb-3">
+            <QuestionsSection groupId={Number(id)} />
+          </div>
+        )}
         <Button type="submit" variant="primary">Save</Button>{' '}
         <Button as={Link} to="/groups" variant="outline-secondary">Cancel</Button>
       </Form>

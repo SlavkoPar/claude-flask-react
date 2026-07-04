@@ -5,6 +5,8 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
 import Groups from './pages/Groups'
 import Group from './components/group/Group'
+import Answers from './pages/Answers'
+import AnswerForm from './pages/AnswerForm'
 
 function Home() {
   const [count, setCount] = useState(0)
@@ -129,6 +131,8 @@ function App() {
         <Route path="/groups" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
         <Route path="/groups/add" element={<ProtectedRoute><Group /></ProtectedRoute>} />
         <Route path="/groups/:id/edit" element={<ProtectedRoute><Group /></ProtectedRoute>} />
+        <Route path="/answers" element={<ProtectedRoute><Answers /></ProtectedRoute>} />
+        <Route path="/answers/add" element={<ProtectedRoute><AnswerForm /></ProtectedRoute>} />
       </Routes>
     </>
   )

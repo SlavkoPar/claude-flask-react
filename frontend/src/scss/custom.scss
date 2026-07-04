@@ -10,6 +10,11 @@
 //////////////////////////////////////
 /// General
 
+.form-control,
+.form-input {
+  padding: 0.125rem 0.875rem;
+}
+
 .knowledge-row {
   background-color: $gray-100;
   color: #333;
@@ -100,6 +105,11 @@
   color: #fff;
   border: 1px solid $yellow-200;
   border-radius: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.1rem 8px;
 
   .selected {
     background-color: $yellow-500;
@@ -111,6 +121,12 @@
     color: $gray-700;
     text-decoration: none;
   }
+}
+
+.question-row-answers {
+  color: $gray-700;
+  font-size: 0.85em;
+  text-decoration: none;
 }
 
 .question-spinner {
@@ -126,6 +142,19 @@
     color: $indigo-700;
     font-size: 14px;
   }
+}
+
+.question-modal {
+  max-width: 60vw;
+  width: 60vw;
+
+  .modal-content {
+    height: 80vh;
+  }
+}
+
+.question-modal-body {
+  overflow-y: auto;
 }
 
 ///////////////////
@@ -208,6 +237,18 @@
   font-size: 0.85em;
 }
 
+.group-row-questions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85em;
+}
+
+.group-row-q-icon {
+  width: 1em;
+  height: 1em;
+}
+
 .group-row-actions {
   display: flex;
   align-items: center;
@@ -259,6 +300,15 @@
   color: #fff;
   border: 1px solid $cyan-200;
   border-radius: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  padding: 0.1rem 8px;
+}
+
+.assigned-answer-row {
+  @extend .answer-row; // same styles as answer-row
 }
 
 .answer-row-selected {
@@ -270,6 +320,15 @@
   background-color: $cyan-100;
   color: $gray-700;
   text-decoration: none;
+}
+
+.answer-row-a-icon {
+  width: 1em;
+  height: 1em;
+}
+
+.answer-row-link {
+  font-size: 0.85em;
 }
 
 .answer-spinner {
@@ -285,4 +344,30 @@
     color: $teal-700;
     font-size: 14px;
   }
+}
+
+.answer-modal {
+  max-width: 60vw;
+  width: 60vw;
+
+  .modal-content {
+    height: 80vh;
+  }
+}
+
+.answer-modal-body {
+  overflow-y: auto;
+}
+
+.assigned-answers-modal {
+  max-width: 50vw;
+  width: 50vw;
+
+  .modal-content {
+    height: 70vh;
+  }
+}
+
+.assigned-answers-modal-body {
+  overflow-y: auto;
 }

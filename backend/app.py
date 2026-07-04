@@ -12,6 +12,9 @@ from database.db import (
     init_db,
     seed_db,
     seed_groups,
+    seed_questions,
+    seed_answers,
+    seed_question_answers,
     get_or_create_google_user,
     get_groups,
     get_group_options,
@@ -19,6 +22,20 @@ from database.db import (
     create_group,
     update_group,
     delete_group,
+    get_questions,
+    get_question,
+    create_question,
+    update_question,
+    delete_question,
+    get_answers,
+    get_answer,
+    create_answer,
+    update_answer,
+    delete_answer,
+    get_assigned_answers,
+    get_unassigned_answers,
+    assign_answer,
+    unassign_answer,
 )
 
 load_dotenv()
@@ -56,6 +73,9 @@ with app.app_context():
     init_db()
     seed_db()
     seed_groups()
+    seed_questions()
+    seed_answers()
+    seed_question_answers()
 
 
 # ── Google OAuth ──────────────────────────────────────────────────────────────
@@ -193,8 +213,191 @@ def groups_delete(group_id):
     try:
         delete_group(group_id)
     except sqlite3.IntegrityError:
-        return jsonify({"error": "Cannot delete a group that still has child groups"}), 400
+        return jsonify({"error": "Cannot delete a group that still has child groups or questions"}), 400
     return jsonify({"ok": True})
+
+
+# ── Questions ─────────────────────────────────────────────────────────────────
+
+def _parse_question_payload(data):
+    """Validate a question create/update payload. Returns (values, error)."""
+    text = (data.get("text") or "").strip()
+    description = (data.get("description") or "").strip() or None
+    values = {"text": text, "description": description}
+
+    if not text:
+        return values, "Text is required"
+
+    return values, None
+
+
+@app.route("/api/questions")
+def questions_list():
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    group_id = request.args.get("group_id")
+    if not group_id:
+        return jsonify({"error": "group_id is required"}), 400
+    return jsonify(get_questions(int(group_id)))
+
+
+@app.route("/api/questions", methods=["POST"])
+def questions_create():
+    user_id = _current_user_id()
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    data = request.get_json(force=True) or {}
+    group_id = data.get("group_id")
+    if not group_id or not get_group(int(group_id)):
+        return jsonify({"error": "Group does not exist"}), 400
+    values, error = _parse_question_payload(data)
+    if error:
+        return jsonify({"error": error, "values": values}), 400
+    question_id = create_question(user_id, int(group_id), values["text"], values["description"])
+    return jsonify(get_question(question_id)), 201
+
+
+@app.route("/api/questions/<int:question_id>", methods=["PUT"])
+def questions_update(question_id):
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    if not get_question(question_id):
+        return jsonify({"error": "Question not found"}), 404
+    data = request.get_json(force=True) or {}
+    values, error = _parse_question_payload(data)
+    if error:
+        return jsonify({"error": error, "values": values}), 400
+    update_question(question_id, values["text"], values["description"])
+    return jsonify(get_question(question_id))
+
+
+@app.route("/api/questions/<int:question_id>", methods=["DELETE"])
+def questions_delete(question_id):
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    if not get_question(question_id):
+        return jsonify({"error": "Question not found"}), 404
+    delete_question(question_id)
+    return jsonify({"ok": True})
+
+
+# ── Answers ───────────────────────────────────────────────────────────────────
+
+def _parse_answer_payload(data):
+    """Validate an answer create/update payload. Returns (values, error)."""
+    short_desc = (data.get("short_desc") or "").strip()
+    description = (data.get("description") or "").strip() or None
+    link = (data.get("link") or "").strip() or None
+    values = {"short_desc": short_desc, "description": description, "link": link}
+
+    if not short_desc:
+        return values, "Short description is required"
+
+    return values, None
+
+
+@app.route("/api/answers")
+def answers_list():
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    name = request.args.get("name") or None
+    return jsonify(get_answers(name=name))
+
+
+@app.route("/api/answers/<int:answer_id>")
+def answers_get(answer_id):
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    answer = get_answer(answer_id)
+    if not answer:
+        return jsonify({"error": "Answer not found"}), 404
+    return jsonify(answer)
+
+
+@app.route("/api/answers", methods=["POST"])
+def answers_create():
+    user_id = _current_user_id()
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    data = request.get_json(force=True) or {}
+    values, error = _parse_answer_payload(data)
+    if error:
+        return jsonify({"error": error, "values": values}), 400
+    answer_id = create_answer(user_id, values["short_desc"], values["description"], values["link"])
+    return jsonify(get_answer(answer_id)), 201
+
+
+@app.route("/api/answers/<int:answer_id>", methods=["PUT"])
+def answers_update(answer_id):
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    if not get_answer(answer_id):
+        return jsonify({"error": "Answer not found"}), 404
+    data = request.get_json(force=True) or {}
+    values, error = _parse_answer_payload(data)
+    if error:
+        return jsonify({"error": error, "values": values}), 400
+    update_answer(answer_id, values["short_desc"], values["description"], values["link"])
+    return jsonify(get_answer(answer_id))
+
+
+@app.route("/api/answers/<int:answer_id>", methods=["DELETE"])
+def answers_delete(answer_id):
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    if not get_answer(answer_id):
+        return jsonify({"error": "Answer not found"}), 404
+    try:
+        delete_answer(answer_id)
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "Cannot delete an answer that is still assigned to questions"}), 400
+    return jsonify({"ok": True})
+
+
+# ── Question <-> Answer assignment ────────────────────────────────────────────
+
+@app.route("/api/questions/<int:question_id>/answers")
+def question_assigned_answers(question_id):
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    if not get_question(question_id):
+        return jsonify({"error": "Question not found"}), 404
+    return jsonify(get_assigned_answers(question_id))
+
+
+@app.route("/api/questions/<int:question_id>/answers/unassigned")
+def question_unassigned_answers(question_id):
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    if not get_question(question_id):
+        return jsonify({"error": "Question not found"}), 404
+    name = request.args.get("name") or None
+    return jsonify(get_unassigned_answers(question_id, name=name))
+
+
+@app.route("/api/questions/<int:question_id>/answers/assign", methods=["POST"])
+def question_answers_assign(question_id):
+    user_id = _current_user_id()
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    if not get_question(question_id):
+        return jsonify({"error": "Question not found"}), 404
+    data = request.get_json(force=True) or {}
+    answer_id = data.get("answer_id")
+    if not answer_id or not get_answer(int(answer_id)):
+        return jsonify({"error": "Answer does not exist"}), 400
+    assign_answer(user_id, question_id, int(answer_id))
+    return jsonify(get_question(question_id)), 201
+
+
+@app.route("/api/questions/<int:question_id>/answers/<int:answer_id>/unassign", methods=["POST"])
+def question_answers_unassign(question_id, answer_id):
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    if not get_question(question_id):
+        return jsonify({"error": "Question not found"}), 404
+    unassign_answer(question_id, answer_id)
+    return jsonify(get_question(question_id))
 
 
 # ── Chat ──────────────────────────────────────────────────────────────────────
