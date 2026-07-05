@@ -1,23 +1,21 @@
-import { useEffect, useState } from 'react'
-import { Container, Form, Button } from 'react-bootstrap'
+import { useState } from 'react'
+import { Container, Button } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
 import List from '../components/answer/List'
+import AsyncAutocomplete from '../components/common/AsyncAutocomplete'
 import { SERVER_URL } from '../config'
+
+async function fetchAnswerOptions(query) {
+  const params = new URLSearchParams()
+  if (query) params.set('name', query)
+  const res = await fetch(`${SERVER_URL}/api/answers?${params.toString()}`, { credentials: 'include' })
+  if (!res.ok) throw new Error('Failed to load answers')
+  const data = await res.json()
+  return data.map(a => ({ id: a.id, label: a.short_desc }))
+}
 
 export default function Answers() {
   const [name, setName] = useState('')
-  const [suggestions, setSuggestions] = useState([])
-
-  useEffect(() => {
-    const params = new URLSearchParams()
-    if (name) params.set('name', name)
-    const timeout = setTimeout(() => {
-      fetch(`${SERVER_URL}/api/answers?${params.toString()}`, { credentials: 'include' })
-        .then(r => r.json())
-        .then(data => setSuggestions(data.map(a => a.short_desc)))
-    }, 200)
-    return () => clearTimeout(timeout)
-  }, [name])
 
   return (
     <Container>
@@ -25,20 +23,13 @@ export default function Answers() {
         <h1>Answers</h1>
         <Button as={Link} to="/answers/add" variant="primary">Add answer</Button>
       </div>
-      <Form className="mb-3">
-        <Form.Control
-          className="form-input"
-          placeholder="Filter by name"
-          list="answer-suggestions"
-          value={name}
-          onChange={e => setName(e.target.value)}
-        />
-        <datalist id="answer-suggestions">
-          {suggestions.map(s => (
-            <option key={s} value={s} />
-          ))}
-        </datalist>
-      </Form>
+      <AsyncAutocomplete
+        className="form-input mb-3"
+        placeholder="Filter by name"
+        fetchOptions={fetchAnswerOptions}
+        onInputChange={setName}
+        onSelect={option => setName(option?.label || '')}
+      />
       <List name={name} />
     </Container>
   )

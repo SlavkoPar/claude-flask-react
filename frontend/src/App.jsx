@@ -7,6 +7,7 @@ import Groups from './pages/Groups'
 import Group from './components/group/Group'
 import Answers from './pages/Answers'
 import AnswerForm from './pages/AnswerForm'
+import SideBar from './components/sidebar/SideBar'
 
 function Home() {
   const [count, setCount] = useState(0)
@@ -122,9 +123,11 @@ function Home() {
 }
 
 function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
   return (
     <>
-      <NavBar />
+      <NavBar onToggleSidebar={() => setSidebarOpen(o => !o)} />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -134,6 +137,7 @@ function App() {
         <Route path="/answers" element={<ProtectedRoute><Answers /></ProtectedRoute>} />
         <Route path="/answers/add" element={<ProtectedRoute><AnswerForm /></ProtectedRoute>} />
       </Routes>
+      <SideBar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
     </>
   )
 }

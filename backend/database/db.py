@@ -1,16 +1,48 @@
 import json
 import os
+import re
 import sqlite3
 from werkzeug.security import generate_password_hash
 
 DB_PATH = "my.db"
 IMPORT_DIR = os.path.join(os.path.dirname(__file__), "import")
 
+_SOUNDEX_CODES = str.maketrans({
+    "B": "1", "F": "1", "P": "1", "V": "1",
+    "C": "2", "G": "2", "J": "2", "K": "2", "Q": "2", "S": "2", "X": "2", "Z": "2",
+    "D": "3", "T": "3",
+    "L": "4",
+    "M": "5", "N": "5",
+    "R": "6",
+})
+
+
+def _soundex(word):
+    """Simplified American Soundex, registered as a SQLite SOUNDEX() function
+    (this SQLite build isn't compiled with the native soundex() extension)."""
+    if not word:
+        return ""
+    word = word.upper()
+    first_letter = word[0]
+    digits = word[1:].translate(_SOUNDEX_CODES)
+    coded = []
+    prev = word[0].translate(_SOUNDEX_CODES)
+    for ch, code in zip(word[1:], digits):
+        if code.isdigit() and code != prev:
+            coded.append(code)
+        prev = code
+    return (first_letter + "".join(coded) + "000")[:4]
+
+
+def _tokenize(text):
+    return [w for w in re.findall(r"[A-Za-z]+", text or "") if len(w) >= 3]
+
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.create_function("SOUNDEX", 1, _soundex)
     return conn
 
 
@@ -98,8 +130,25 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             question_id INTEGER NOT NULL REFERENCES questions(id),
             answer_id INTEGER NOT NULL REFERENCES answers(id),
-            clicksTo_Fixed INTEGER DEFAULT 0,
+            clicks_to_Fixed INTEGER DEFAULT 0,
             user_id INTEGER NOT NULL REFERENCES users(id),
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    conn.commit()
+    # Migration: rename clicks_to_Fixed to clicks_to_Fixed on databases created before this rename
+    try:
+        conn.execute("ALTER TABLE question_answers RENAME COLUMN clicks_to_Fixed TO clicks_to_Fixed")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # already renamed (or column never existed)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            question_id INTEGER NOT NULL REFERENCES questions(id),
+            answer_id INTEGER NOT NULL REFERENCES answers(id),
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            action TEXT NOT NULL,
             created_at TEXT DEFAULT (datetime('now'))
         )
     """)
@@ -508,5 +557,98 @@ def unassign_answer(question_id, answer_id):
         (question_id, answer_id),
     )
     _recompute_num_of_assigned_answers(conn, question_id)
+    conn.commit()
+    conn.close()
+
+
+# ── Sidebar: question search, candidate answers, fixed/not-fixed ────────────
+
+def search_questions(query, limit=20):
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT id, group_id, text FROM questions WHERE text LIKE ? COLLATE NOCASE "
+        "ORDER BY text LIMIT ?",
+        (f"%{query}%", limit),
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_candidate_answers(question_id):
+    """Answers assigned to the question (real clicks_to_Fixed), plus answers not
+    yet assigned whose short_desc shares a SOUNDEX-matching word with the
+    question text (treated as clicks_to_Fixed = 0). Ordered by clicks_to_Fixed desc."""
+    question = get_question(question_id)
+    if not question:
+        return []
+
+    conn = get_db()
+    assigned = [dict(r) for r in conn.execute(
+        "SELECT a.id, a.short_desc, a.description, a.link, qa.clicks_to_Fixed "
+        "FROM answers a JOIN question_answers qa ON qa.answer_id = a.id "
+        "WHERE qa.question_id = ?",
+        (question_id,),
+    ).fetchall()]
+
+    question_codes = {
+        conn.execute("SELECT SOUNDEX(?)", (w,)).fetchone()[0]
+        for w in _tokenize(question["text"])
+    }
+
+    unassigned = conn.execute(
+        "SELECT id, short_desc, description, link FROM answers "
+        "WHERE id NOT IN (SELECT answer_id FROM question_answers WHERE question_id = ?)",
+        (question_id,),
+    ).fetchall()
+
+    matched = []
+    for row in unassigned:
+        answer = dict(row)
+        answer_codes = {
+            conn.execute("SELECT SOUNDEX(?)", (w,)).fetchone()[0]
+            for w in _tokenize(answer["short_desc"])
+        }
+        if question_codes & answer_codes:
+            answer["clicks_to_Fixed"] = 0
+            matched.append(answer)
+    conn.close()
+
+    candidates = assigned + matched
+    candidates.sort(key=lambda a: a["clicks_to_Fixed"], reverse=True)
+    return candidates
+
+
+def mark_answer_fixed(user_id, question_id, answer_id):
+    conn = get_db()
+    existing = conn.execute(
+        "SELECT id FROM question_answers WHERE question_id = ? AND answer_id = ?",
+        (question_id, answer_id),
+    ).fetchone()
+    if existing:
+        conn.execute(
+            "UPDATE question_answers SET clicks_to_Fixed = clicks_to_Fixed + 1 WHERE id = ?",
+            (existing["id"],),
+        )
+    else:
+        conn.execute(
+            "INSERT INTO question_answers (question_id, answer_id, user_id, clicks_to_Fixed) "
+            "VALUES (?, ?, ?, 1)",
+            (question_id, answer_id, user_id),
+        )
+    _recompute_num_of_assigned_answers(conn, question_id)
+    conn.execute(
+        "INSERT INTO history (question_id, answer_id, user_id, action) VALUES (?, ?, ?, 'fixed')",
+        (question_id, answer_id, user_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def mark_answer_not_fixed(user_id, question_id, answer_id):
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO history (question_id, answer_id, user_id, action) VALUES (?, ?, ?, 'not_fixed')",
+        (question_id, answer_id, user_id),
+    )
     conn.commit()
     conn.close()

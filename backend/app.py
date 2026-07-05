@@ -36,6 +36,10 @@ from database.db import (
     get_unassigned_answers,
     assign_answer,
     unassign_answer,
+    search_questions,
+    get_candidate_answers,
+    mark_answer_fixed,
+    mark_answer_not_fixed,
 )
 
 load_dotenv()
@@ -398,6 +402,53 @@ def question_answers_unassign(question_id, answer_id):
         return jsonify({"error": "Question not found"}), 404
     unassign_answer(question_id, answer_id)
     return jsonify(get_question(question_id))
+
+
+# ── Sidebar: question search, candidate answers, fixed/not-fixed ─────────────
+
+@app.route("/api/questions/search")
+def questions_search():
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    q = request.args.get("q") or ""
+    if not q:
+        return jsonify([])
+    return jsonify(search_questions(q))
+
+
+@app.route("/api/questions/<int:question_id>/candidate-answers")
+def questions_candidate_answers(question_id):
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    if not get_question(question_id):
+        return jsonify({"error": "Question not found"}), 404
+    return jsonify(get_candidate_answers(question_id))
+
+
+@app.route("/api/questions/<int:question_id>/answers/<int:answer_id>/fixed", methods=["POST"])
+def questions_answer_fixed(question_id, answer_id):
+    user_id = _current_user_id()
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    if not get_question(question_id):
+        return jsonify({"error": "Question not found"}), 404
+    if not get_answer(answer_id):
+        return jsonify({"error": "Answer not found"}), 404
+    mark_answer_fixed(user_id, question_id, answer_id)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/questions/<int:question_id>/answers/<int:answer_id>/not-fixed", methods=["POST"])
+def questions_answer_not_fixed(question_id, answer_id):
+    user_id = _current_user_id()
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    if not get_question(question_id):
+        return jsonify({"error": "Question not found"}), 404
+    if not get_answer(answer_id):
+        return jsonify({"error": "Answer not found"}), 404
+    mark_answer_not_fixed(user_id, question_id, answer_id)
+    return jsonify({"ok": True})
 
 
 # ── Chat ──────────────────────────────────────────────────────────────────────

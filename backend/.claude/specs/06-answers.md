@@ -2,7 +2,7 @@
 
 > Status: implemented (2026-06-15). Notes on how it was built vs. this draft:
 > - Tables created as `answers` and `question_answers` (SQL name; spec wrote
->   "question-answers" which isn't a valid identifier). `num_of_assigned_answers`
+>   "question_answers" which isn't a valid identifier). `num_of_assigned_answers`
 >   column added to `questions` and kept in sync by the query helpers.
 > - `/answers` list page filters by name (server-side `q` + a `<datalist>`
 >   autocomplete). Add is a page (`add_answer.html`); **Edit uses a modal**
@@ -42,14 +42,14 @@
 | link | TEXT | Nullable |
 | created_at | TEXT | Default datetime('now') |
 
-### question-answers
+### question_answers
 
 | Column | Type | Constraints |
 | --- | --- | --- |
 | id | INTEGER | Primary key, autoincrement |
 | question_id | INTEGER | Foreign key → questions.id, not null |
 | answer_id | INTEGER | Foreign key → answers.id, not null |
-| clicksTo_Fixed | INTEGER | Default 0
+| clicks_to_Fixed | INTEGER | Default 0 |
 | user_id | INTEGER | Foreign key → users.id, not null |
 | created_at | TEXT | Default datetime('now') |
 

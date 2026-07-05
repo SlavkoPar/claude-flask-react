@@ -338,6 +338,7 @@
 
 .answer-row-link {
   font-size: 0.85em;
+  text-decoration: none;
 }
 
 .answer-spinner {
@@ -385,4 +386,50 @@
   border-top: 1px solid $gray-300;
   padding-top: 0.75rem;
   margin-top: 0.5rem;
+}
+
+/////////////////////////////
+/// Sidebar
+
+.hamburger-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0 0.25rem;
+  cursor: pointer;
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 1040;
+}
+
+.sidebar-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 320px;
+  max-width: 90vw;
+  background-color: $body-bg;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.2);
+  padding: 1rem;
+  overflow-y: auto;
+  z-index: 1050;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.sidebar-panel-open {
+  transform: translateX(0);
+}
+
+.sidebar-answer-card {
+  border: 1px solid $cyan-200;
+  border-radius: 4px;
+  background-color: $cyan-100;
+  padding: 0.75rem;
 }

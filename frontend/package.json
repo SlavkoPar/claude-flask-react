@@ -16,7 +16,8 @@
     "react-bootstrap": "^2.10.10",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.0",
-    "scss": "^0.2.4"
+    "scss": "^0.2.4",
+    "tom-select": "^2.6.1"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

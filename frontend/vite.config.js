@@ -10,4 +10,12 @@ export default defineConfig({
       '/auth': 'http://localhost:5000',
     },
   },
+   css: {
+    preprocessorOptions: {
+      scss: {
+        api: 'modern',
+        silenceDeprecations: ['if-function'],
+      },
+    },
+  },
 })
