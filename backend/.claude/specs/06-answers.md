@@ -100,6 +100,9 @@ No new dependencies.
 - implement CRUD operations for `Answers`
 - In the answer row, put 'Edit link to short_desc
 - put icon `A.png` as the first column of the answer row, justify content left
+- in question edit form put section `AssignedAnswers` with its assigned answers, visible 3 rows, for rest enable vertical scroll
+- for assigned answer row, put icon A.png at the start of row
 
+- in question edit form, create button `Assign answer`, on click open modal to add assign answers from unassigned, with autocomplete filter
 ## Definition of done
 - [ ] Visiting `/answers` without being logged in redirects to `/login`

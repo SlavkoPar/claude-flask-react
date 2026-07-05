@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Button } from 'react-bootstrap'
 import { SERVER_URL } from '../../config'
 import QuestionModal from './QuestionModal'
-import AssignedAnswersModal from './AssignedAnswersModal'
+import qIcon from '../../assets/Q.png'
 
 async function fetchQuestions(groupId) {
   const res = await fetch(`${SERVER_URL}/api/questions?group_id=${groupId}`, { credentials: 'include' })
@@ -23,7 +23,6 @@ export default function QuestionsSection({ groupId }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [modalQuestion, setModalQuestion] = useState(null) // null = closed, object = open (id present -> edit)
-  const [answersQuestionId, setAnswersQuestionId] = useState(null)
   const [scrollY, setScrollY] = useState(0)
 
   const load = () => {
@@ -40,11 +39,11 @@ export default function QuestionsSection({ groupId }) {
 
   const closeModal = () => {
     setModalQuestion(null)
+    load() // answers may have been assigned/unassigned while the modal was open
     requestAnimationFrame(() => window.scrollTo(0, scrollY))
   }
 
   const handleSaved = () => {
-    load()
     closeModal()
   }
 
@@ -72,16 +71,11 @@ export default function QuestionsSection({ groupId }) {
       ) : (
         questions.map(q => (
           <div key={q.id} className="question-row">
+            <img src={qIcon} alt="Question" className="question-row-q-icon" />
             <button type="button" className="btn btn-link title p-0" onClick={() => openModal(q)}>
               {q.text}
             </button>
-            <button
-              type="button"
-              className="btn btn-link question-row-answers p-0"
-              onClick={() => setAnswersQuestionId(q.id)}
-            >
-              Assigned answers ({q.num_of_assigned_answers})
-            </button>
+            <span className="question-row-answers">Assigned answers: {q.num_of_assigned_answers}</span>
             <Button type="button" variant="outline-danger" size="sm" onClick={() => handleDelete(q.id)}>Delete</Button>
           </div>
         ))
@@ -92,13 +86,6 @@ export default function QuestionsSection({ groupId }) {
           question={modalQuestion.id ? modalQuestion : null}
           onSaved={handleSaved}
           onClose={closeModal}
-        />
-      )}
-      {answersQuestionId && (
-        <AssignedAnswersModal
-          questionId={answersQuestionId}
-          onChange={load}
-          onClose={() => setAnswersQuestionId(null)}
         />
       )}
     </div>

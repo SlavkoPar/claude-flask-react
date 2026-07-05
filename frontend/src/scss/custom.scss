@@ -126,7 +126,11 @@
 .question-row-answers {
   color: $gray-700;
   font-size: 0.85em;
-  text-decoration: none;
+}
+
+.question-row-q-icon {
+  width: 1em;
+  height: 1em;
 }
 
 .question-spinner {
@@ -311,6 +315,11 @@
   @extend .answer-row; // same styles as answer-row
 }
 
+.assigned-answers-list {
+  max-height: 7rem; // ~3 rows visible, scroll for the rest
+  overflow-y: auto;
+}
+
 .answer-row-selected {
   background-color: $cyan-500;
   color: #fff;
@@ -359,7 +368,7 @@
   overflow-y: auto;
 }
 
-.assigned-answers-modal {
+.answer-picker-modal {
   max-width: 50vw;
   width: 50vw;
 
@@ -368,6 +377,12 @@
   }
 }
 
-.assigned-answers-modal-body {
+.answer-picker-modal-body {
   overflow-y: auto;
+}
+
+.assigned-answers-section {
+  border-top: 1px solid $gray-300;
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
 }

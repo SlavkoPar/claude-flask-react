@@ -68,6 +68,7 @@ No new dependencies.
 - put `Add Question` button to the top of the `Questions` section
 - after adding, edititng or deleting a `question`, refresh section`Questions` only, do not reload the Group, do not navigate `groups`
 - put 'Questions' section inside of `group` form, before 'Save Changes' button
+- for question row put icon Q.png at the start of row
 
 -- Open Modal when click od "Edit Question" 
 -- Modal width: 60% height: 80%

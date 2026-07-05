@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Modal, Form, Button, Alert } from 'react-bootstrap'
 import { SERVER_URL } from '../../config'
+import AssignedAnswersSection from './AssignedAnswersSection'
 
 async function saveQuestion(groupId, question, values) {
   const isEdit = Boolean(question?.id)
@@ -67,6 +68,11 @@ export default function QuestionModal({ groupId, question, onSaved, onClose }) {
               onChange={e => setValues(v => ({ ...v, description: e.target.value }))}
             />
           </Form.Group>
+          {question?.id ? (
+            <AssignedAnswersSection questionId={question.id} />
+          ) : (
+            <div className="text-muted small">Save the question first to assign answers.</div>
+          )}
         </Modal.Body>
         <Modal.Footer>
           <Button type="button" variant="outline-secondary" onClick={onClose}>Cancel</Button>
