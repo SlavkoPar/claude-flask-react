@@ -64,7 +64,7 @@ export default function AnswerModal({ answer, onSaved, onClose }) {
             <Form.Label>Description</Form.Label>
             <Form.Control
               as="textarea"
-              rows={6}
+              rows={3}
               className="form-input"
               value={values.description}
               onChange={e => setValues(v => ({ ...v, description: e.target.value }))}

@@ -3,6 +3,7 @@ import { Button } from 'react-bootstrap'
 import { SERVER_URL } from '../../config'
 import QuestionModal from './QuestionModal'
 import qIcon from '../../assets/Q.png'
+import aIcon from '../../assets/A.png'
 
 async function fetchQuestions(groupId) {
   const res = await fetch(`${SERVER_URL}/api/questions?group_id=${groupId}`, { credentials: 'include' })
@@ -75,8 +76,11 @@ export default function QuestionsSection({ groupId }) {
             <button type="button" className="btn btn-link title p-0" onClick={() => openModal(q)}>
               {q.text}
             </button>
-            <span className="question-row-answers">Assigned answers: {q.num_of_assigned_answers}</span>
-            <Button type="button" variant="outline-danger" size="sm" onClick={() => handleDelete(q.id)}>Delete</Button>
+            <span className="question-row-answers">
+              <img src={aIcon} alt="Assigned answers" className="question-row-answers-a-icon" />
+              {q.num_of_assigned_answers}
+            </span>
+            <Button type="button" variant="outline-danger" size="sm" aria-label="Delete question" onClick={() => handleDelete(q.id)}>✕</Button>
           </div>
         ))
       )}

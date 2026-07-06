@@ -4,6 +4,7 @@ import { Button } from 'react-bootstrap'
 import List from './List'
 import { SERVER_URL } from '../../config'
 import qIcon from '../../assets/Q.png'
+import folderIcon from '../../assets/folder.svg'
 
 async function deleteGroup(id) {
   const res = await fetch(`${SERVER_URL}/api/groups/${id}`, { method: 'DELETE', credentials: 'include' })
@@ -31,6 +32,8 @@ export default function Row({ group, onChange }) {
   return (
     <div className="group-row">
       <div className="group-row-content">
+        <img src={folderIcon} alt="Group" className="group-row-folder-icon" />
+        <Link to={`/groups/${group.id}/edit`} className="title">{group.name}</Link>
         {group.has_child_groups ? (
           <button
             type="button"
@@ -43,7 +46,6 @@ export default function Row({ group, onChange }) {
         ) : (
           <span className="group-row-spacer" />
         )}
-        <Link to={`/groups/${group.id}/edit`} className="title">{group.name}</Link>
         {group.description && <span className="group-row-description">{group.description}</span>}
         <span className="group-row-questions">
           <img src={qIcon} alt="Questions" className="group-row-q-icon" />
@@ -56,7 +58,7 @@ export default function Row({ group, onChange }) {
           {!group.has_child_groups && (
             <Link to={`/groups/${group.id}/edit`} className="group-row-add-link">add question</Link>
           )}
-          <Button variant="outline-danger" size="sm" onClick={handleDelete}>Delete</Button>
+          <Button variant="outline-danger" size="sm" aria-label="Delete group" onClick={handleDelete}>✕</Button>
         </div>
       </div>
       {error && <div className="group-row-error">{error}</div>}

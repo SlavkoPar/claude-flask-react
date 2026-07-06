@@ -18,7 +18,8 @@
 - create an animated, closable right `SideBar` side navigation menu 
 - put hamburger icon in NavBar to the right side
 - inside of side bar implement autocomplete filter for questions
-- create section `Answers` below the filter
+- keep question filter after selecting the question, and display bellow `Answer for question:` with question text
+- create section `Answers` below the filter, without title
 - on select question 
    -- select all answers from table `answers` which satisfy at least one word of selected question, use SOUNDEX function, treat  `clicks_to_Fixed` for them equal 0
    -- join answers from question assigned-answers

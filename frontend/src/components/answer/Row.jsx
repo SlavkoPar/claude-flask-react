@@ -11,7 +11,7 @@ export default function Row({ answer, onEdit, onDelete }) {
       {answer.link && (
         <a href={answer.link} target="_blank" rel="noreferrer" className="answer-row-link">↗</a>
       )}
-      <Button type="button" variant="outline-danger" size="sm" onClick={() => onDelete(answer.id)}>Delete</Button>
+      <Button type="button" variant="outline-danger" size="sm" aria-label="Delete answer" onClick={() => onDelete(answer.id)}>✕</Button>
     </div>
   )
 }

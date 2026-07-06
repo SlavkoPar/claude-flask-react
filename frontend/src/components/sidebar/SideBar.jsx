@@ -81,10 +81,14 @@ export default function SideBar({ open, onClose }) {
           fetchOptions={searchQuestions}
           onSelect={handleSelectQuestion}
           requireSelection
-          clearAfterSelect
         />
 
-        <h6>Answers</h6>
+        {question && (
+          <div className="small mb-2">
+            <strong>Answer for question:</strong> {question.label}
+          </div>
+        )}
+
         {!question ? (
           <div className="text-muted small">Select a question above.</div>
         ) : candidates.length === 0 ? (

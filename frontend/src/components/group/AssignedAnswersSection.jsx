@@ -55,7 +55,7 @@ export default function AssignedAnswersSection({ questionId }) {
             <div key={a.id} className="assigned-answer-row">
               <img src={aIcon} alt="Answer" className="answer-row-a-icon" />
               <span className="answer-row-title">{a.short_desc}</span>
-              <Button variant="outline-danger" size="sm" onClick={() => handleUnassign(a.id)}>Remove</Button>
+              <Button variant="outline-danger" size="sm" aria-label="Remove answer" onClick={() => handleUnassign(a.id)}>✕</Button>
             </div>
           ))}
         </div>

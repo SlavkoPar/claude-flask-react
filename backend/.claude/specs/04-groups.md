@@ -70,6 +70,7 @@ No new dependencies.
   - create and use scss classes for tree 
   - move links `add group` and `delete` to the right end of row
   - for `Group` form create section `Questions` always visible
+  - put `folder` icon at the start of `group` row, color gray, margin-left: 5px
 
   - create page `src/pages/Groups.jsx`
   - create javascript model `src/model/Group.ts`
