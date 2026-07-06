@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Modal, Form, Button, Alert } from 'react-bootstrap'
 import { SERVER_URL } from '../../config'
 
@@ -26,6 +26,8 @@ export default function AnswerModal({ answer, onSaved, onClose }) {
   })
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+  const initialValuesRef = useRef(values)
+  const isDirty = JSON.stringify(values) !== JSON.stringify(initialValuesRef.current)
 
   const handleSubmit = async e => {
     e.preventDefault()
@@ -79,10 +81,12 @@ export default function AnswerModal({ answer, onSaved, onClose }) {
             />
           </Form.Group>
         </Modal.Body>
-        <Modal.Footer>
-          <Button type="button" variant="outline-secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="primary" disabled={saving}>Save</Button>
-        </Modal.Footer>
+        {isDirty && (
+          <Modal.Footer>
+            <Button type="button" variant="outline-secondary" onClick={onClose}>Cancel</Button>
+            <Button type="submit" variant="primary" disabled={saving}>Save</Button>
+          </Modal.Footer>
+        )}
       </Form>
     </Modal>
   )

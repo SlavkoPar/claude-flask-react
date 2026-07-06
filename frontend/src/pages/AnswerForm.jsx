@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Container, Form, Button, Alert } from 'react-bootstrap'
 import { SERVER_URL } from '../config'
@@ -7,6 +7,8 @@ export default function AnswerForm() {
   const navigate = useNavigate()
   const [values, setValues] = useState({ short_desc: '', description: '', link: '' })
   const [error, setError] = useState(null)
+  const initialValuesRef = useRef(values)
+  const isDirty = JSON.stringify(values) !== JSON.stringify(initialValuesRef.current)
 
   const handleSubmit = async e => {
     e.preventDefault()
@@ -62,8 +64,12 @@ export default function AnswerForm() {
             onChange={e => setValues(v => ({ ...v, link: e.target.value }))}
           />
         </Form.Group>
-        <Button type="submit" variant="primary">Save</Button>{' '}
-        <Button as={Link} to="/answers" variant="outline-secondary">Cancel</Button>
+        {isDirty && (
+          <>
+            <Button type="submit" variant="primary">Save</Button>{' '}
+            <Button as={Link} to="/answers" variant="outline-secondary">Cancel</Button>
+          </>
+        )}
       </Form>
     </Container>
   )

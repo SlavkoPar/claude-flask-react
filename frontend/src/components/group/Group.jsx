@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom'
 import { Container, Form, Button, Alert } from 'react-bootstrap'
 import { SERVER_URL } from '../../config'
@@ -18,6 +18,7 @@ export default function Group() {
   })
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(isEdit)
+  const initialValuesRef = useRef(values)
 
   useEffect(() => {
     fetch(`${SERVER_URL}/api/groups/options`, { credentials: 'include' })
@@ -30,14 +31,18 @@ export default function Group() {
     fetch(`${SERVER_URL}/api/groups/${id}`, { credentials: 'include' })
       .then(r => r.json())
       .then(data => {
-        setValues({
+        const loaded = {
           name: data.name,
           description: data.description || '',
-          parent_id: data.parent_id ?? '',
-        })
+          parent_id: data.parent_id != null ? String(data.parent_id) : '',
+        }
+        setValues(loaded)
+        initialValuesRef.current = loaded
         setLoading(false)
       })
   }, [id, isEdit])
+
+  const isDirty = JSON.stringify(values) !== JSON.stringify(initialValuesRef.current)
 
   const handleSubmit = async e => {
     e.preventDefault()
@@ -104,8 +109,12 @@ export default function Group() {
             <QuestionsSection groupId={Number(id)} />
           </div>
         )}
-        <Button type="submit" variant="primary">Save</Button>{' '}
-        <Button as={Link} to="/groups" variant="outline-secondary">Cancel</Button>
+        {isDirty && (
+          <>
+            <Button type="submit" variant="primary">Save</Button>{' '}
+            <Button as={Link} to="/groups" variant="outline-secondary">Cancel</Button>
+          </>
+        )}
       </Form>
     </Container>
   )
