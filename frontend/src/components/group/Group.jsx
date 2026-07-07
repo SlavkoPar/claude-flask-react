@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Container, Form, Button, Alert } from 'react-bootstrap'
 import { SERVER_URL } from '../../config'
 import QuestionsSection from './QuestionsSection'
@@ -112,7 +112,13 @@ export default function Group() {
         {isDirty && (
           <>
             <Button type="submit" variant="primary">Save</Button>{' '}
-            <Button as={Link} to="/groups" variant="outline-secondary">Cancel</Button>
+            <Button
+              type="button"
+              variant="outline-secondary"
+              onClick={() => setValues(initialValuesRef.current)}
+            >
+              Cancel
+            </Button>
           </>
         )}
       </Form>

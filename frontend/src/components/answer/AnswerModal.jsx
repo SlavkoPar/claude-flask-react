@@ -83,7 +83,13 @@ export default function AnswerModal({ answer, onSaved, onClose }) {
         </Modal.Body>
         {isDirty && (
           <Modal.Footer>
-            <Button type="button" variant="outline-secondary" onClick={onClose}>Cancel</Button>
+            <Button
+              type="button"
+              variant="outline-secondary"
+              onClick={() => setValues(initialValuesRef.current)}
+            >
+              Cancel
+            </Button>
             <Button type="submit" variant="primary" disabled={saving}>Save</Button>
           </Modal.Footer>
         )}

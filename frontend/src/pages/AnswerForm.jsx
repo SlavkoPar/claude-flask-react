@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Container, Form, Button, Alert } from 'react-bootstrap'
 import { SERVER_URL } from '../config'
 
@@ -67,7 +67,13 @@ export default function AnswerForm() {
         {isDirty && (
           <>
             <Button type="submit" variant="primary">Save</Button>{' '}
-            <Button as={Link} to="/answers" variant="outline-secondary">Cancel</Button>
+            <Button
+              type="button"
+              variant="outline-secondary"
+              onClick={() => setValues(initialValuesRef.current)}
+            >
+              Cancel
+            </Button>
           </>
         )}
       </Form>
