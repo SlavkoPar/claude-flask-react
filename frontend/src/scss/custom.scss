@@ -412,6 +412,73 @@
 }
 
 /////////////////////////////
+/// Document
+.documents {
+  color: $orange-500;
+}
+
+.document-row {
+  @extend .slave-row; // Inherit all properties from .slave-row
+  background-color: $orange-400;
+  color: #fff;
+  border: 1px solid $orange-200;
+  border-radius: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  padding: 0.1rem 8px;
+
+  > :last-child {
+    margin-left: auto;
+  }
+}
+
+.document-row-title {
+  background-color: $orange-100;
+  color: $gray-700;
+  text-decoration: none;
+}
+
+.document-row-doc-icon {
+  width: 1em;
+  height: 1em;
+}
+
+.document-row-link {
+  font-size: 0.85em;
+  text-decoration: none;
+}
+
+.document-spinner {
+  color: $orange-500
+}
+
+.document-form {
+  @extend .knowledge-form; // Inherit all properties from .knowledge-form
+  background-color: $orange-500;
+  color: #ddd;
+
+  .form-label {
+    color: $teal-700;
+    font-size: 14px;
+  }
+}
+
+.document-modal {
+  max-width: 60vw;
+  width: 60vw;
+
+  .modal-content {
+    height: 80vh;
+  }
+}
+
+.document-modal-body {
+  overflow-y: auto;
+}
+
+/////////////////////////////
 /// Sidebar
 
 .hamburger-btn {

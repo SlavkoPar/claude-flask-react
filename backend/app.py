@@ -1,8 +1,10 @@
+import io
+import json
 import os
 import ssl
 import urllib3
 import sqlite3
-from flask import Flask, request, jsonify, Response, stream_with_context, session, redirect
+from flask import Flask, request, jsonify, Response, stream_with_context, session, redirect, send_file
 from flask_cors import CORS
 from anthropic import Anthropic
 from dotenv import load_dotenv
@@ -40,7 +42,15 @@ from database.db import (
     get_candidate_answers,
     mark_answer_fixed,
     mark_answer_not_fixed,
+    seed_documents,
+    get_documents,
+    get_document,
+    get_document_pdf,
+    create_document,
+    update_document,
+    delete_document,
 )
+from pypdf import PdfReader
 
 load_dotenv()
 
@@ -80,6 +90,7 @@ with app.app_context():
     seed_questions()
     seed_answers()
     seed_question_answers()
+    seed_documents()
 
 
 # ── Google OAuth ──────────────────────────────────────────────────────────────
@@ -356,6 +367,127 @@ def answers_delete(answer_id):
     except sqlite3.IntegrityError:
         return jsonify({"error": "Cannot delete an answer that is still assigned to questions"}), 400
     return jsonify({"ok": True})
+
+
+# ── Documents ─────────────────────────────────────────────────────────────────
+
+def _parse_document_payload(data):
+    """Validate a document create/update payload. Returns (values, error)."""
+    description = (data.get("description") or "").strip()
+    content = (data.get("content") or "").strip()
+    link = (data.get("link") or "").strip() or None
+    values = {"description": description, "content": content, "link": link}
+
+    if not description:
+        return values, "Description is required"
+    if not content:
+        return values, "Content is required"
+
+    return values, None
+
+
+@app.route("/api/documents")
+def documents_list():
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    name = request.args.get("name") or None
+    return jsonify(get_documents(name=name))
+
+
+@app.route("/api/documents/<int:document_id>")
+def documents_get(document_id):
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    document = get_document(document_id)
+    if not document:
+        return jsonify({"error": "Document not found"}), 404
+    return jsonify(document)
+
+
+def _read_pdf_upload():
+    file = request.files.get("file")
+    if not file or not file.filename:
+        return None, None
+    return file.filename, file.read()
+
+
+@app.route("/api/documents", methods=["POST"])
+def documents_create():
+    user_id = _current_user_id()
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    values, error = _parse_document_payload(request.form)
+    if error:
+        return jsonify({"error": error, "values": values}), 400
+    pdf_filename, pdf_data = _read_pdf_upload()
+    document_id = create_document(
+        user_id, values["description"], values["content"], values["link"], pdf_filename, pdf_data
+    )
+    return jsonify(get_document(document_id)), 201
+
+
+@app.route("/api/documents/<int:document_id>", methods=["PUT"])
+def documents_update(document_id):
+    user_id = _current_user_id()
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    document = get_document(document_id)
+    if not document:
+        return jsonify({"error": "Document not found"}), 404
+    if document["user_id"] != user_id:
+        return jsonify({"error": "Only the creator can modify this document"}), 403
+    values, error = _parse_document_payload(request.form)
+    if error:
+        return jsonify({"error": error, "values": values}), 400
+    pdf_filename, pdf_data = _read_pdf_upload()
+    update_document(document_id, values["description"], values["content"], values["link"], pdf_filename, pdf_data)
+    return jsonify(get_document(document_id))
+
+
+@app.route("/api/documents/<int:document_id>", methods=["DELETE"])
+def documents_delete(document_id):
+    user_id = _current_user_id()
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    document = get_document(document_id)
+    if not document:
+        return jsonify({"error": "Document not found"}), 404
+    if document["user_id"] != user_id:
+        return jsonify({"error": "Only the creator can delete this document"}), 403
+    delete_document(document_id)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/documents/extract-pdf", methods=["POST"])
+def documents_extract_pdf():
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    file = request.files.get("file")
+    if not file or not file.filename.lower().endswith(".pdf"):
+        return jsonify({"error": "A PDF file is required"}), 400
+    try:
+        reader = PdfReader(file.stream)
+        pages = [page.extract_text() or "" for page in reader.pages]
+    except Exception:
+        return jsonify({"error": "Could not read PDF file"}), 400
+    content = json.dumps({"filename": file.filename, "pages": pages}, ensure_ascii=False)
+    return jsonify({"content": content})
+
+
+@app.route("/api/documents/<int:document_id>/pdf")
+def documents_get_pdf(document_id):
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    if not get_document(document_id):
+        return jsonify({"error": "Document not found"}), 404
+    pdf = get_document_pdf(document_id)
+    if not pdf:
+        return jsonify({"error": "No PDF stored for this document"}), 404
+    return send_file(
+        io.BytesIO(pdf["pdf_data"]),
+        mimetype="application/pdf",
+        download_name=pdf["pdf_filename"] or "document.pdf",
+    )
 
 
 # ── Question <-> Answer assignment ────────────────────────────────────────────

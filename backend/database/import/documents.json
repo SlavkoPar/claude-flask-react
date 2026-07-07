@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "user_id": 1,
+    "description": "SBB remote controller troubleshooting guide",
+    "content": "If the remote controller doesn't respond, first replace the batteries. If that doesn't help, restart the router and TV. If the issue persists, visit the closest branch office to get the remote controller replaced.",
+    "link": "https://sbb.rs/podrska/kontakt/prodajna-mesta",
+    "created_at": "2026-06-12 06:02:53"
+  },
+  {
+    "id": 2,
+    "user_id": 1,
+    "description": "Router restart procedure",
+    "content": "Unplug the router power cable, wait 10 seconds, then plug it back in. Wait for all lights to turn solid before checking your connection again.",
+    "link": null,
+    "created_at": "2026-06-12 06:02:53"
+  }
+]

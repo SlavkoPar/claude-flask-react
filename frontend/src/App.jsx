@@ -7,6 +7,8 @@ import Groups from './pages/Groups'
 import Group from './components/group/Group'
 import Answers from './pages/Answers'
 import AnswerForm from './pages/AnswerForm'
+import Documents from './pages/Documents'
+import DocumentForm from './pages/DocumentForm'
 import SideBar from './components/sidebar/SideBar'
 
 function Home() {
@@ -136,6 +138,8 @@ function App() {
         <Route path="/groups/:id/edit" element={<ProtectedRoute><Group /></ProtectedRoute>} />
         <Route path="/answers" element={<ProtectedRoute><Answers /></ProtectedRoute>} />
         <Route path="/answers/add" element={<ProtectedRoute><AnswerForm /></ProtectedRoute>} />
+        <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+        <Route path="/documents/add" element={<ProtectedRoute><DocumentForm /></ProtectedRoute>} />
       </Routes>
       <SideBar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
     </>

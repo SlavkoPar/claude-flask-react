@@ -152,7 +152,29 @@ def init_db():
             created_at TEXT DEFAULT (datetime('now'))
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS documents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            description TEXT NOT NULL,
+            content TEXT NOT NULL,
+            link TEXT,
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
     conn.commit()
+    # Migration: add pdf_filename/pdf_data to databases created before the
+    # original PDF upload was also stored (not just its extracted text)
+    try:
+        conn.execute("ALTER TABLE documents ADD COLUMN pdf_filename TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # column already exists
+    try:
+        conn.execute("ALTER TABLE documents ADD COLUMN pdf_data BLOB")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # column already exists
     conn.close()
 
 
@@ -250,6 +272,24 @@ def seed_question_answers():
         UPDATE questions SET num_of_assigned_answers =
             (SELECT COUNT(*) FROM question_answers qa WHERE qa.question_id = questions.id)
     """)
+    conn.commit()
+    conn.close()
+
+
+def seed_documents():
+    conn = get_db()
+    row = conn.execute("SELECT id FROM documents LIMIT 1").fetchone()
+    if row:
+        conn.close()
+        return
+    with open(os.path.join(IMPORT_DIR, "documents.json"), encoding="utf-8") as f:
+        documents = json.load(f)
+    for d in documents:
+        conn.execute(
+            "INSERT INTO documents (id, user_id, description, content, link, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (d["id"], 1, d["description"], d["content"], d["link"], d["created_at"]),
+        )
     conn.commit()
     conn.close()
 
@@ -499,6 +539,84 @@ def delete_answer(answer_id):
         conn.commit()
     finally:
         conn.close()
+
+
+# ── Documents ─────────────────────────────────────────────────────────────────
+
+def get_documents(name=None):
+    conn = get_db()
+    columns = "id, user_id, description, link, created_at"
+    if name:
+        sql = f"SELECT {columns} FROM documents WHERE description LIKE ? COLLATE NOCASE ORDER BY description"
+        rows = conn.execute(sql, (f"%{name}%",)).fetchall()
+    else:
+        sql = f"SELECT {columns} FROM documents ORDER BY description"
+        rows = conn.execute(sql).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_document(document_id):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT id, user_id, description, content, link, created_at, pdf_filename, "
+        "(pdf_data IS NOT NULL) AS has_pdf FROM documents WHERE id = ?",
+        (document_id,),
+    ).fetchone()
+    conn.close()
+    if not row:
+        return None
+    document = dict(row)
+    document["has_pdf"] = bool(document["has_pdf"])
+    return document
+
+
+def get_document_pdf(document_id):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT pdf_filename, pdf_data FROM documents WHERE id = ?", (document_id,)
+    ).fetchone()
+    conn.close()
+    if not row or row["pdf_data"] is None:
+        return None
+    return dict(row)
+
+
+def create_document(user_id, description, content, link, pdf_filename=None, pdf_data=None):
+    conn = get_db()
+    cursor = conn.execute(
+        "INSERT INTO documents (user_id, description, content, link, pdf_filename, pdf_data) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (user_id, description, content, link, pdf_filename, pdf_data),
+    )
+    document_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return document_id
+
+
+def update_document(document_id, description, content, link, pdf_filename=None, pdf_data=None):
+    conn = get_db()
+    if pdf_data is not None:
+        conn.execute(
+            "UPDATE documents SET description = ?, content = ?, link = ?, "
+            "pdf_filename = ?, pdf_data = ? WHERE id = ?",
+            (description, content, link, pdf_filename, pdf_data, document_id),
+        )
+    else:
+        conn.execute(
+            "UPDATE documents SET description = ?, content = ?, link = ? WHERE id = ?",
+            (description, content, link, document_id),
+        )
+    conn.commit()
+    conn.close()
+
+
+def delete_document(document_id):
+    conn = get_db()
+    conn.execute("DELETE FROM documents WHERE id = ?", (document_id,))
+    conn.commit()
+    conn.close()
 
 
 # ── Question <-> Answer assignment ───────────────────────────────────────────

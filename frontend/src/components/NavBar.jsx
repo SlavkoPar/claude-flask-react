@@ -17,6 +17,7 @@ export default function NavBar({ onToggleSidebar }) {
           <Nav className="me-auto">
             <Nav.Link as={NavLink} to="/groups">Groups</Nav.Link>
             {user && <Nav.Link as={NavLink} to="/answers">Answers</Nav.Link>}
+            {user && <Nav.Link as={NavLink} to="/documents">Documents</Nav.Link>}
           </Nav>
           <Nav className="align-items-center gap-2">
             {user === undefined ? null : user ? (

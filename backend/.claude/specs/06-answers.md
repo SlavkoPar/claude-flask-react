@@ -1,4 +1,4 @@
-# Spec: Answers and Answer
+# Spec: Answers
 
 > Status: implemented (2026-06-15). Notes on how it was built vs. this draft:
 > - Tables created as `answers` and `question_answers` (SQL name; spec wrote
