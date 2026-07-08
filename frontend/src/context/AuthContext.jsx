@@ -18,8 +18,16 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  const demoLogin = async () => {
+    const r = await fetch(`${SERVER_URL}/api/auth/demo-login`, { method: 'POST', credentials: 'include' })
+    if (r.ok) {
+      const data = await r.json()
+      setUser(data.user)
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, setUser, logout }}>
+    <AuthContext.Provider value={{ user, setUser, logout, demoLogin }}>
       {children}
     </AuthContext.Provider>
   )

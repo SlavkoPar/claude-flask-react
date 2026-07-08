@@ -1,0 +1,38 @@
+{
+   "version": "0.2.0",
+   "configurations": [
+      {
+         "name": "Python: Flask Server",
+         "type": "debugpy",
+         "request": "launch",
+         "module": "flask",
+         "env": {
+            "FLASK_APP": "app.py",
+            "FLASK_DEBUG": "1"
+         },
+         "args": [
+            "run",
+            "--no-reload"
+         ],
+         "jinja": false,
+         "cwd": "${workspaceFolder}/backend"
+      },
+      {
+         "name": "Web: Vite React Client",
+         "type": "chrome",
+         "request": "launch",
+         "url": "http://localhost:5173",
+         "webRoot": "${workspaceFolder}/frontend",
+         "sourceMaps": true
+      }
+   ],
+   "compounds": [
+      {
+         "name": "Flask + Vite React",
+         "configurations": [
+            "Python: Flask Server",
+            "Web: Vite React Client"
+         ]
+      }
+   ]
+}

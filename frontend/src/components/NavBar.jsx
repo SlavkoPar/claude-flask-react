@@ -5,7 +5,7 @@ import { useTheme } from '../context/ThemeContext'
 import { SERVER_URL } from '../config'
 
 export default function NavBar({ onToggleSidebar }) {
-  const { user, logout } = useAuth()
+  const { user, logout, demoLogin } = useAuth()
   const { theme, toggleTheme } = useTheme()
 
   return (
@@ -28,7 +28,10 @@ export default function NavBar({ onToggleSidebar }) {
                 <NavDropdown.Item onClick={logout}>Sign out</NavDropdown.Item>
               </NavDropdown>
             ) : (
-              <Nav.Link href={`${SERVER_URL}/auth/google`}>Sign in with Google</Nav.Link>
+              <>
+                <Nav.Link href={`${SERVER_URL}/auth/google`}>Sign in with Google</Nav.Link>
+                <Nav.Link onClick={demoLogin}>Sign in as Demo user</Nav.Link>
+              </>
             )}
             {user && (
               <button

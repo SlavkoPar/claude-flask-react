@@ -9,10 +9,12 @@ from flask_cors import CORS
 from anthropic import Anthropic
 from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
+from werkzeug.security import check_password_hash
 from database.db import (
     get_db,
     init_db,
     seed_db,
+    get_user_by_email,
     seed_groups,
     seed_questions,
     seed_answers,
@@ -114,6 +116,15 @@ def google_callback():
 
 
 # ── Auth API ──────────────────────────────────────────────────────────────────
+
+@app.route("/api/auth/demo-login", methods=["POST"])
+def demo_login():
+    user = get_user_by_email("demo@my.com")
+    if not user or not check_password_hash(user["password_hash"], "demo123"):
+        return jsonify({"error": "Demo user not available"}), 401
+    session["user_id"] = user["id"]
+    return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"]}})
+
 
 @app.route("/api/auth/me")
 def auth_me():
