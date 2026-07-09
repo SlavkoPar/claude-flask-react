@@ -15,6 +15,7 @@ logs
 
 .venv/
 my.db
+faiss_*.index
 __pycache__/
 *.pyc
 *.pyo

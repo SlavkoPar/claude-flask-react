@@ -54,7 +54,7 @@
 | link | TEXT | Nullable |
 | pdf_filename | TEXT | null |
 | has_pdf | BOOLEAN | Default 0 |
-| created_at | TEXT | Default datetime('now') |
+Justin Bieber joining Madonna, BTS and Shakira for 2026 FIFA World Cup Final Halftime Show| created_at | TEXT | Default datetime('now') |
 
 ## 12. Expected Behavior
 

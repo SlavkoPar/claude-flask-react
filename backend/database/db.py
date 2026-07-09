@@ -1,48 +1,18 @@
 import json
 import os
-import re
 import sqlite3
 from werkzeug.security import generate_password_hash
 
+from database import vector_store
+
 DB_PATH = "my.db"
 IMPORT_DIR = os.path.join(os.path.dirname(__file__), "import")
-
-_SOUNDEX_CODES = str.maketrans({
-    "B": "1", "F": "1", "P": "1", "V": "1",
-    "C": "2", "G": "2", "J": "2", "K": "2", "Q": "2", "S": "2", "X": "2", "Z": "2",
-    "D": "3", "T": "3",
-    "L": "4",
-    "M": "5", "N": "5",
-    "R": "6",
-})
-
-
-def _soundex(word):
-    """Simplified American Soundex, registered as a SQLite SOUNDEX() function
-    (this SQLite build isn't compiled with the native soundex() extension)."""
-    if not word:
-        return ""
-    word = word.upper()
-    first_letter = word[0]
-    digits = word[1:].translate(_SOUNDEX_CODES)
-    coded = []
-    prev = word[0].translate(_SOUNDEX_CODES)
-    for ch, code in zip(word[1:], digits):
-        if code.isdigit() and code != prev:
-            coded.append(code)
-        prev = code
-    return (first_letter + "".join(coded) + "000")[:4]
-
-
-def _tokenize(text):
-    return [w for w in re.findall(r"[A-Za-z]+", text or "") if len(w) >= 3]
 
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    conn.create_function("SOUNDEX", 1, _soundex)
     return conn
 
 
@@ -490,6 +460,19 @@ def delete_question(question_id):
 
 # ── Answers ───────────────────────────────────────────────────────────────────
 
+def _answer_embedding_text(short_desc, description):
+    return f"{short_desc}\n\n{description}" if description else short_desc
+
+
+def backfill_answer_embeddings():
+    conn = get_db()
+    rows = conn.execute("SELECT id, short_desc, description FROM answers").fetchall()
+    conn.close()
+    vector_store.backfill_if_needed(
+        "answers", ((r["id"], _answer_embedding_text(r["short_desc"], r["description"])) for r in rows)
+    )
+
+
 def get_answers(name=None):
     conn = get_db()
     columns = "id, user_id, short_desc, description, link, created_at"
@@ -519,6 +502,7 @@ def create_answer(user_id, short_desc, description, link):
     answer_id = cursor.lastrowid
     conn.commit()
     conn.close()
+    vector_store.add_embedding("answers", answer_id, _answer_embedding_text(short_desc, description))
     return answer_id
 
 
@@ -530,6 +514,7 @@ def update_answer(answer_id, short_desc, description, link):
     )
     conn.commit()
     conn.close()
+    vector_store.add_embedding("answers", answer_id, _answer_embedding_text(short_desc, description))
 
 
 def delete_answer(answer_id):
@@ -539,9 +524,52 @@ def delete_answer(answer_id):
         conn.commit()
     finally:
         conn.close()
+    vector_store.remove_embedding("answers", answer_id)
 
 
 # ── Documents ─────────────────────────────────────────────────────────────────
+
+def _document_embedding_text(description, content):
+    return f"{description}\n\n{content}"
+
+
+def backfill_document_embeddings():
+    conn = get_db()
+    rows = conn.execute("SELECT id, description, content FROM documents").fetchall()
+    conn.close()
+    vector_store.backfill_if_needed(
+        "documents", ((r["id"], _document_embedding_text(r["description"], r["content"])) for r in rows)
+    )
+
+
+def _document_snippet(content, length=300):
+    content = content.strip()
+    return content[:length] + ("…" if len(content) > length else "")
+
+
+def search_documents(query, k=5):
+    """Semantic search over document embeddings. Returns documents ranked by
+    FAISS L2 distance (ascending, so most relevant first)."""
+    matches = vector_store.search("documents", query, k=k)
+    if not matches:
+        return []
+    distance_by_id = {m["id"]: m["distance"] for m in matches}
+
+    conn = get_db()
+    placeholders = ",".join("?" for _ in matches)
+    rows = conn.execute(
+        f"SELECT id, description, content, link, created_at FROM documents WHERE id IN ({placeholders})",
+        list(distance_by_id.keys()),
+    ).fetchall()
+    conn.close()
+
+    results = [dict(r) for r in rows]
+    for r in results:
+        r["snippet"] = _document_snippet(r.pop("content"))
+        r["distance"] = distance_by_id[r["id"]]
+    results.sort(key=lambda r: r["distance"])
+    return results
+
 
 def get_documents(name=None):
     conn = get_db()
@@ -592,6 +620,7 @@ def create_document(user_id, description, content, link, pdf_filename=None, pdf_
     document_id = cursor.lastrowid
     conn.commit()
     conn.close()
+    vector_store.add_embedding("documents", document_id, _document_embedding_text(description, content))
     return document_id
 
 
@@ -610,6 +639,7 @@ def update_document(document_id, description, content, link, pdf_filename=None, 
         )
     conn.commit()
     conn.close()
+    vector_store.add_embedding("documents", document_id, _document_embedding_text(description, content))
 
 
 def delete_document(document_id):
@@ -617,6 +647,7 @@ def delete_document(document_id):
     conn.execute("DELETE FROM documents WHERE id = ?", (document_id,))
     conn.commit()
     conn.close()
+    vector_store.remove_embedding("documents", document_id)
 
 
 # ── Question <-> Answer assignment ───────────────────────────────────────────
@@ -692,10 +723,10 @@ def search_questions(query, limit=20):
     return [dict(r) for r in rows]
 
 
-def get_candidate_answers(question_id):
+def get_candidate_answers(question_id, k=10):
     """Answers assigned to the question (real clicks_to_Fixed), plus answers not
-    yet assigned whose short_desc shares a SOUNDEX-matching word with the
-    question text (treated as clicks_to_Fixed = 0). Ordered by clicks_to_Fixed desc."""
+    yet assigned whose embedding is a FAISS vector-search match for the question
+    text (treated as clicks_to_Fixed = 0). Ordered by clicks_to_Fixed desc."""
     question = get_question(question_id)
     if not question:
         return []
@@ -707,28 +738,24 @@ def get_candidate_answers(question_id):
         "WHERE qa.question_id = ?",
         (question_id,),
     ).fetchall()]
+    assigned_ids = {a["id"] for a in assigned}
 
-    question_codes = {
-        conn.execute("SELECT SOUNDEX(?)", (w,)).fetchone()[0]
-        for w in _tokenize(question["text"])
-    }
-
-    unassigned = conn.execute(
-        "SELECT id, short_desc, description, link FROM answers "
-        "WHERE id NOT IN (SELECT answer_id FROM question_answers WHERE question_id = ?)",
-        (question_id,),
-    ).fetchall()
-
+    matched_ids = [
+        m["id"] for m in vector_store.search("answers", question["text"], k=k)
+        if m["id"] not in assigned_ids
+    ]
     matched = []
-    for row in unassigned:
-        answer = dict(row)
-        answer_codes = {
-            conn.execute("SELECT SOUNDEX(?)", (w,)).fetchone()[0]
-            for w in _tokenize(answer["short_desc"])
-        }
-        if question_codes & answer_codes:
+    if matched_ids:
+        placeholders = ",".join("?" for _ in matched_ids)
+        rows = conn.execute(
+            f"SELECT id, short_desc, description, link FROM answers WHERE id IN ({placeholders})",
+            matched_ids,
+        ).fetchall()
+        by_id = {r["id"]: dict(r) for r in rows}
+        # rebuild in FAISS relevance order — SQL's `IN (...)` doesn't preserve list order
+        matched = [by_id[i] for i in matched_ids if i in by_id]
+        for answer in matched:
             answer["clicks_to_Fixed"] = 0
-            matched.append(answer)
     conn.close()
 
     candidates = assigned + matched

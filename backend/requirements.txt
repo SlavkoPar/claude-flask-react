@@ -6,3 +6,5 @@ werkzeug
 authlib
 requests
 pypdf
+faiss-cpu
+sentence-transformers

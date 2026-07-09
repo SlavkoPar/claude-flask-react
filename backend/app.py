@@ -36,6 +36,7 @@ from database.db import (
     create_answer,
     update_answer,
     delete_answer,
+    backfill_answer_embeddings,
     get_assigned_answers,
     get_unassigned_answers,
     assign_answer,
@@ -45,12 +46,14 @@ from database.db import (
     mark_answer_fixed,
     mark_answer_not_fixed,
     seed_documents,
+    backfill_document_embeddings,
     get_documents,
     get_document,
     get_document_pdf,
     create_document,
     update_document,
     delete_document,
+    search_documents,
 )
 from pypdf import PdfReader
 
@@ -93,6 +96,8 @@ with app.app_context():
     seed_answers()
     seed_question_answers()
     seed_documents()
+    backfill_document_embeddings()
+    backfill_answer_embeddings()
 
 
 # ── Google OAuth ──────────────────────────────────────────────────────────────
@@ -403,6 +408,16 @@ def documents_list():
         return jsonify({"error": "Not authenticated"}), 401
     name = request.args.get("name") or None
     return jsonify(get_documents(name=name))
+
+
+@app.route("/api/documents/search")
+def documents_search():
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    q = request.args.get("q") or ""
+    if not q:
+        return jsonify([])
+    return jsonify(search_documents(q))
 
 
 @app.route("/api/documents/<int:document_id>")

@@ -11,11 +11,11 @@ export default function NavBar({ onToggleSidebar }) {
   return (
     <Navbar expand="md" className="mb-3 shadow-sm" data-bs-theme={theme}>
       <Container>
-        <Navbar.Brand as={Link} to="/">MyApp</Navbar.Brand>
+        <Navbar.Brand as={Link} to="/">Q&A</Navbar.Brand>
         <Navbar.Toggle aria-controls="main-nav" />
         <Navbar.Collapse id="main-nav">
           <Nav className="me-auto">
-            <Nav.Link as={NavLink} to="/groups">Groups</Nav.Link>
+            <Nav.Link as={NavLink} to="/groups">Questions</Nav.Link>
             {user && <Nav.Link as={NavLink} to="/answers">Answers</Nav.Link>}
             {user && <Nav.Link as={NavLink} to="/documents">Documents</Nav.Link>}
           </Nav>
