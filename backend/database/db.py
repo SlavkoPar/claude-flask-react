@@ -422,6 +422,19 @@ def _recompute_num_of_questions(conn, group_id):
     )
 
 
+def _question_embedding_text(text, description):
+    return f"{text}\n\n{description}" if description else text
+
+
+def backfill_question_embeddings():
+    conn = get_db()
+    rows = conn.execute("SELECT id, text, description FROM questions").fetchall()
+    conn.close()
+    vector_store.backfill_if_needed(
+        "questions", ((r["id"], _question_embedding_text(r["text"], r["description"])) for r in rows)
+    )
+
+
 def create_question(user_id, group_id, text, description):
     conn = get_db()
     cursor = conn.execute(
@@ -432,7 +445,29 @@ def create_question(user_id, group_id, text, description):
     _recompute_num_of_questions(conn, group_id)
     conn.commit()
     conn.close()
+    vector_store.add_embedding("questions", question_id, _question_embedding_text(text, description))
     return question_id
+
+
+UNCATEGORIZED_GROUP_NAME = "Uncategorized"
+
+
+def get_or_create_uncategorized_group(user_id):
+    """Root group that sidebar-searched filters (which matched a document but no
+    existing question) get filed under when saved as a new question."""
+    for g in get_groups(name=UNCATEGORIZED_GROUP_NAME):
+        if g["name"] == UNCATEGORIZED_GROUP_NAME:
+            return g["id"]
+    return create_group(
+        user_id, UNCATEGORIZED_GROUP_NAME, None,
+        "Questions auto-saved from sidebar filters that matched a document",
+    )
+
+
+def create_question_from_filter(user_id, text):
+    group_id = get_or_create_uncategorized_group(user_id)
+    question_id = create_question(user_id, group_id, text, None)
+    return get_question(question_id)
 
 
 def update_question(question_id, text, description):
@@ -443,6 +478,7 @@ def update_question(question_id, text, description):
     )
     conn.commit()
     conn.close()
+    vector_store.add_embedding("questions", question_id, _question_embedding_text(text, description))
 
 
 def delete_question(question_id):
@@ -456,6 +492,7 @@ def delete_question(question_id):
         _recompute_num_of_questions(conn, group_id)
     conn.commit()
     conn.close()
+    vector_store.remove_embedding("questions", question_id)
 
 
 # ── Answers ───────────────────────────────────────────────────────────────────
@@ -712,15 +749,25 @@ def unassign_answer(question_id, answer_id):
 
 # ── Sidebar: question search, candidate answers, fixed/not-fixed ────────────
 
+# Above this distance a match is considered unrelated rather than found, so an
+# irrelevant filter reports zero matches — the Sidebar relies on that "not
+# found" signal to fall back to searching documents instead.
+QUESTION_MATCH_MAX_DISTANCE = 1.1
+
+
 def search_questions(query, limit=20):
+    matches = vector_store.search("questions", query, k=limit, max_distance=QUESTION_MATCH_MAX_DISTANCE)
+    if not matches:
+        return []
     conn = get_db()
+    placeholders = ",".join("?" for _ in matches)
     rows = conn.execute(
-        "SELECT id, group_id, text FROM questions WHERE text LIKE ? COLLATE NOCASE "
-        "ORDER BY text LIMIT ?",
-        (f"%{query}%", limit),
+        f"SELECT id, group_id, text FROM questions WHERE id IN ({placeholders})",
+        [m["id"] for m in matches],
     ).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    by_id = {r["id"]: dict(r) for r in rows}
+    return [by_id[m["id"]] for m in matches if m["id"] in by_id]
 
 
 def get_candidate_answers(question_id, k=10):

@@ -84,15 +84,20 @@ def backfill_if_needed(namespace, rows):
         _save_index(namespace)
 
 
-def search(namespace, query_text, k=5):
-    """Return up to `k` nearest item ids for `query_text` as [{"id", "distance"}, ...]."""
+def search(namespace, query_text, k=5, max_distance=None):
+    """Return up to `k` nearest item ids for `query_text` as [{"id", "distance"}, ...],
+    ordered by ascending L2 distance. If `max_distance` is given, matches farther
+    than that are dropped (so an unrelated query can report zero matches)."""
     with _lock:
         index = _get_index(namespace)
         if index.ntotal == 0:
             return []
         distances, ids = index.search(_embed(query_text).reshape(1, -1), min(k, index.ntotal))
-    return [
+    results = [
         {"id": int(item_id), "distance": float(dist)}
         for item_id, dist in zip(ids[0], distances[0])
         if item_id != -1
     ]
+    if max_distance is not None:
+        results = [r for r in results if r["distance"] <= max_distance]
+    return results

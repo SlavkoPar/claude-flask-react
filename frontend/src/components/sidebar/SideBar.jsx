@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button } from 'react-bootstrap'
 import { SERVER_URL } from '../../config'
 import AsyncAutocomplete from '../common/AsyncAutocomplete'
@@ -9,6 +9,24 @@ async function searchQuestions(q) {
   if (!res.ok) throw new Error('Failed to search questions')
   const data = await res.json()
   return data.map(q => ({ id: q.id, label: q.text }))
+}
+
+async function searchDocuments(q) {
+  const params = new URLSearchParams({ q })
+  const res = await fetch(`${SERVER_URL}/api/documents/search?${params.toString()}`, { credentials: 'include' })
+  if (!res.ok) throw new Error('Failed to search documents')
+  return res.json()
+}
+
+async function createQuestionFromFilter(text) {
+  const res = await fetch(`${SERVER_URL}/api/questions/from-filter`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  })
+  if (!res.ok) throw new Error('Failed to save question')
+  return res.json()
 }
 
 async function fetchCandidateAnswers(questionId) {
@@ -38,12 +56,31 @@ export default function SideBar({ open, onClose }) {
   const [candidates, setCandidates] = useState([])
   const [index, setIndex] = useState(0)
   const [error, setError] = useState(null)
+  const filterRef = useRef('')
 
   const handleSelectQuestion = option => {
     if (!option) return
     setQuestion(option)
     setIndex(0)
     fetchCandidateAnswers(option.id).then(setCandidates).catch(e => setError(e.message))
+  }
+
+  // No question matched the typed filter — fall back to a document match, and
+  // if one satisfies the search, save the filter itself as a new question so
+  // its (vector-searched) candidate answers can be shown and acted on normally.
+  const handleQuestionResults = options => {
+    const filter = filterRef.current
+    if (options.length > 0 || !filter) return
+    searchDocuments(filter)
+      .then(docs => {
+        if (docs.length === 0) return
+        return createQuestionFromFilter(filter).then(newQuestion => {
+          setQuestion({ id: newQuestion.id, label: newQuestion.text })
+          setIndex(0)
+          return fetchCandidateAnswers(newQuestion.id).then(setCandidates)
+        })
+      })
+      .catch(e => setError(e.message))
   }
 
   const current = candidates[index]
@@ -80,6 +117,8 @@ export default function SideBar({ open, onClose }) {
           placeholder="Filter questions"
           fetchOptions={searchQuestions}
           onSelect={handleSelectQuestion}
+          onInputChange={q => { filterRef.current = q }}
+          onResults={handleQuestionResults}
           requireSelection
         />
 

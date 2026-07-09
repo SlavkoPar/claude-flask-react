@@ -29,6 +29,8 @@ from database.db import (
     get_questions,
     get_question,
     create_question,
+    create_question_from_filter,
+    backfill_question_embeddings,
     update_question,
     delete_question,
     get_answers,
@@ -98,6 +100,7 @@ with app.app_context():
     seed_documents()
     backfill_document_embeddings()
     backfill_answer_embeddings()
+    backfill_question_embeddings()
 
 
 # ── Google OAuth ──────────────────────────────────────────────────────────────
@@ -572,6 +575,21 @@ def questions_search():
     if not q:
         return jsonify([])
     return jsonify(search_questions(q))
+
+
+@app.route("/api/questions/from-filter", methods=["POST"])
+def questions_create_from_filter():
+    """Persist a sidebar search filter as a real question (under the
+    'Uncategorized' group) once it's been matched to a document, so it — and
+    its vector-searched candidate answers — can be found directly next time."""
+    user_id = _current_user_id()
+    if not user_id:
+        return jsonify({"error": "Not authenticated"}), 401
+    data = request.get_json(force=True) or {}
+    text = (data.get("text") or "").strip()
+    if not text:
+        return jsonify({"error": "Text is required"}), 400
+    return jsonify(create_question_from_filter(user_id, text)), 201
 
 
 @app.route("/api/questions/<int:question_id>/candidate-answers")
