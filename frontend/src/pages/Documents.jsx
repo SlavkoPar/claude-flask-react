@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Container, Button } from 'react-bootstrap'
+import { useEffect, useState } from 'react'
+import { Container, Button, Form, Row, Col } from 'react-bootstrap'
 import { Link } from 'react-router-dom'
 import List from '../components/document/List'
 import AsyncAutocomplete from '../components/common/AsyncAutocomplete'
@@ -16,6 +16,14 @@ async function fetchDocumentOptions(query) {
 
 export default function Documents() {
   const [name, setName] = useState('')
+  const [groupId, setGroupId] = useState('')
+  const [groupOptions, setGroupOptions] = useState([])
+
+  useEffect(() => {
+    fetch(`${SERVER_URL}/api/groups/options`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(setGroupOptions)
+  }, [])
 
   return (
     <Container>
@@ -23,14 +31,26 @@ export default function Documents() {
         <h1>Documents</h1>
         <Button as={Link} to="/documents/add" variant="primary">Add document</Button>
       </div>
-      <AsyncAutocomplete
-        className="form-input mb-3"
-        placeholder="Filter by description"
-        fetchOptions={fetchDocumentOptions}
-        onInputChange={setName}
-        onSelect={option => setName(option?.label || '')}
-      />
-      <List name={name} />
+      <Row className="g-2 mb-3">
+        <Col md={6}>
+          <AsyncAutocomplete
+            className="form-input"
+            placeholder="Filter by description"
+            fetchOptions={fetchDocumentOptions}
+            onInputChange={setName}
+            onSelect={option => setName(option?.label || '')}
+          />
+        </Col>
+        <Col md={6}>
+          <Form.Select value={groupId} onChange={e => setGroupId(e.target.value)}>
+            <option value="">All groups</option>
+            {groupOptions.map(o => (
+              <option key={o.id} value={o.id}>{o.name}</option>
+            ))}
+          </Form.Select>
+        </Col>
+      </Row>
+      <List name={name} groupId={groupId ? Number(groupId) : null} />
     </Container>
   )
 }

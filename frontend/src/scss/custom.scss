@@ -454,6 +454,49 @@
   color: $orange-500
 }
 
+.document-group-row {
+  @extend .knowledge-row; // Inherit all properties from .knowledge-row
+  background-color: $orange-300;
+  color: #fff;
+  padding-top: 1px;
+  padding-bottom: 1px;
+  margin-bottom: 0.25rem;
+}
+
+.document-group-row-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.document-group-row-icon {
+  width: 1.75em;
+  height: 1.75em;
+  padding-left: 5px;
+}
+
+.document-group-row-name {
+  background-color: $orange-100;
+  color: $gray-700;
+}
+
+.document-group-row-toggle {
+  width: 1.5em;
+  font-size: 1.75em;
+  line-height: 1;
+  text-align: center;
+}
+
+.document-group-row-count {
+  font-size: 0.85em;
+  margin-left: auto;
+}
+
+.document-children {
+  margin-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
 .document-form {
   @extend .knowledge-form; // Inherit all properties from .knowledge-form
   background-color: $orange-500;

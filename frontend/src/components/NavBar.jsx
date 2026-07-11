@@ -11,7 +11,7 @@ export default function NavBar({ onToggleSidebar }) {
   return (
     <Navbar expand="md" className="mb-3 shadow-sm" data-bs-theme={theme}>
       <Container>
-        <Navbar.Brand as={Link} to="/">Q&A</Navbar.Brand>
+        <Navbar.Brand as={Link} to="/">Knowledge</Navbar.Brand>
         <Navbar.Toggle aria-controls="main-nav" />
         <Navbar.Collapse id="main-nav">
           <Nav className="me-auto">

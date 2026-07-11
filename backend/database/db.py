@@ -126,6 +126,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS documents (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL REFERENCES users(id),
+            group_id INTEGER REFERENCES groups(id),
             description TEXT NOT NULL,
             content TEXT NOT NULL,
             link TEXT,
@@ -142,6 +143,14 @@ def init_db():
         pass  # column already exists
     try:
         conn.execute("ALTER TABLE documents ADD COLUMN pdf_data BLOB")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # column already exists
+    # Migration: add group_id to databases created before documents were
+    # grouped. Left nullable here (existing rows have none yet) — see
+    # backfill_document_groups(), which files them under "Uncategorized".
+    try:
+        conn.execute("ALTER TABLE documents ADD COLUMN group_id INTEGER REFERENCES groups(id)")
         conn.commit()
     except sqlite3.OperationalError:
         pass  # column already exists
@@ -608,15 +617,33 @@ def search_documents(query, k=5):
     return results
 
 
-def get_documents(name=None):
+def backfill_document_groups():
+    """Files any pre-existing document without a group_id (created before
+    documents were grouped) under its creator's "Uncategorized" group."""
     conn = get_db()
-    columns = "id, user_id, description, link, created_at"
+    rows = conn.execute("SELECT id, user_id FROM documents WHERE group_id IS NULL").fetchall()
+    conn.close()
+    for r in rows:
+        group_id = get_or_create_uncategorized_group(r["user_id"])
+        conn = get_db()
+        conn.execute("UPDATE documents SET group_id = ? WHERE id = ?", (group_id, r["id"]))
+        conn.commit()
+        conn.close()
+
+
+def get_documents(name=None, group_id=None):
+    conn = get_db()
+    columns = "d.id, d.user_id, d.group_id, g.name AS group_name, d.description, d.link, d.created_at"
+    sql = f"SELECT {columns} FROM documents d LEFT JOIN groups g ON g.id = d.group_id WHERE 1=1"
+    params = []
     if name:
-        sql = f"SELECT {columns} FROM documents WHERE description LIKE ? COLLATE NOCASE ORDER BY description"
-        rows = conn.execute(sql, (f"%{name}%",)).fetchall()
-    else:
-        sql = f"SELECT {columns} FROM documents ORDER BY description"
-        rows = conn.execute(sql).fetchall()
+        sql += " AND d.description LIKE ? COLLATE NOCASE"
+        params.append(f"%{name}%")
+    if group_id is not None:
+        sql += " AND d.group_id = ?"
+        params.append(group_id)
+    sql += " ORDER BY g.name, d.description"
+    rows = conn.execute(sql, params).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
@@ -624,7 +651,7 @@ def get_documents(name=None):
 def get_document(document_id):
     conn = get_db()
     row = conn.execute(
-        "SELECT id, user_id, description, content, link, created_at, pdf_filename, "
+        "SELECT id, user_id, group_id, description, content, link, created_at, pdf_filename, "
         "(pdf_data IS NOT NULL) AS has_pdf FROM documents WHERE id = ?",
         (document_id,),
     ).fetchone()
@@ -647,12 +674,12 @@ def get_document_pdf(document_id):
     return dict(row)
 
 
-def create_document(user_id, description, content, link, pdf_filename=None, pdf_data=None):
+def create_document(user_id, group_id, description, content, link, pdf_filename=None, pdf_data=None):
     conn = get_db()
     cursor = conn.execute(
-        "INSERT INTO documents (user_id, description, content, link, pdf_filename, pdf_data) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (user_id, description, content, link, pdf_filename, pdf_data),
+        "INSERT INTO documents (user_id, group_id, description, content, link, pdf_filename, pdf_data) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (user_id, group_id, description, content, link, pdf_filename, pdf_data),
     )
     document_id = cursor.lastrowid
     conn.commit()
@@ -661,18 +688,18 @@ def create_document(user_id, description, content, link, pdf_filename=None, pdf_
     return document_id
 
 
-def update_document(document_id, description, content, link, pdf_filename=None, pdf_data=None):
+def update_document(document_id, group_id, description, content, link, pdf_filename=None, pdf_data=None):
     conn = get_db()
     if pdf_data is not None:
         conn.execute(
-            "UPDATE documents SET description = ?, content = ?, link = ?, "
+            "UPDATE documents SET group_id = ?, description = ?, content = ?, link = ?, "
             "pdf_filename = ?, pdf_data = ? WHERE id = ?",
-            (description, content, link, pdf_filename, pdf_data, document_id),
+            (group_id, description, content, link, pdf_filename, pdf_data, document_id),
         )
     else:
         conn.execute(
-            "UPDATE documents SET description = ?, content = ?, link = ? WHERE id = ?",
-            (description, content, link, document_id),
+            "UPDATE documents SET group_id = ?, description = ?, content = ?, link = ? WHERE id = ?",
+            (group_id, description, content, link, document_id),
         )
     conn.commit()
     conn.close()

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Container, Form, Button, Alert } from 'react-bootstrap'
 import { SERVER_URL } from '../config'
@@ -18,12 +18,19 @@ async function extractPdf(file) {
 
 export default function DocumentForm() {
   const navigate = useNavigate()
-  const [values, setValues] = useState({ description: '', content: '', link: '' })
+  const [values, setValues] = useState({ description: '', content: '', link: '', group_id: '' })
+  const [groupOptions, setGroupOptions] = useState([])
   const [pdfFile, setPdfFile] = useState(null)
   const [error, setError] = useState(null)
   const [extracting, setExtracting] = useState(false)
   const initialValuesRef = useRef(values)
   const isDirty = pdfFile || JSON.stringify(values) !== JSON.stringify(initialValuesRef.current)
+
+  useEffect(() => {
+    fetch(`${SERVER_URL}/api/groups/options`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(setGroupOptions)
+  }, [])
 
   const handleFileChange = async e => {
     const file = e.target.files?.[0]
@@ -48,6 +55,7 @@ export default function DocumentForm() {
     formData.append('description', values.description)
     formData.append('content', values.content)
     formData.append('link', values.link)
+    formData.append('group_id', values.group_id)
     if (pdfFile) formData.append('file', pdfFile)
     const res = await fetch(`${SERVER_URL}/api/documents`, {
       method: 'POST',
@@ -62,6 +70,7 @@ export default function DocumentForm() {
           description: data.values.description ?? values.description,
           content: data.values.content ?? values.content,
           link: data.values.link ?? '',
+          group_id: data.values.group_id ?? values.group_id,
         })
       }
       return
@@ -81,6 +90,19 @@ export default function DocumentForm() {
             value={values.description}
             onChange={e => setValues(v => ({ ...v, description: e.target.value }))}
           />
+        </Form.Group>
+        <Form.Group className="mb-3">
+          <Form.Label>Group</Form.Label>
+          <Form.Select
+            className="form-input"
+            value={values.group_id}
+            onChange={e => setValues(v => ({ ...v, group_id: e.target.value }))}
+          >
+            <option value="">Select a group…</option>
+            {groupOptions.map(o => (
+              <option key={o.id} value={o.id}>{o.name}</option>
+            ))}
+          </Form.Select>
         </Form.Group>
         <Form.Group className="mb-3">
           <Form.Label>Upload PDF</Form.Label>

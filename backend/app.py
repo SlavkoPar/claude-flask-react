@@ -48,6 +48,7 @@ from database.db import (
     mark_answer_fixed,
     mark_answer_not_fixed,
     seed_documents,
+    backfill_document_groups,
     backfill_document_embeddings,
     get_documents,
     get_document,
@@ -98,6 +99,7 @@ with app.app_context():
     seed_answers()
     seed_question_answers()
     seed_documents()
+    backfill_document_groups()
     backfill_document_embeddings()
     backfill_answer_embeddings()
     backfill_question_embeddings()
@@ -395,14 +397,24 @@ def _parse_document_payload(data):
     description = (data.get("description") or "").strip()
     content = (data.get("content") or "").strip()
     link = (data.get("link") or "").strip() or None
-    values = {"description": description, "content": content, "link": link}
+    raw_group_id = data.get("group_id")
+    values = {"description": description, "content": content, "link": link, "group_id": raw_group_id}
 
     if not description:
         return values, "Description is required"
     if not content:
         return values, "Content is required"
 
-    return values, None
+    group_id = None
+    if raw_group_id not in (None, "", "null"):
+        try:
+            group_id = int(raw_group_id)
+        except (TypeError, ValueError):
+            return values, "Invalid group"
+    if not group_id or not get_group(group_id):
+        return values, "Group is required"
+
+    return {"description": description, "content": content, "link": link, "group_id": group_id}, None
 
 
 @app.route("/api/documents")
@@ -410,7 +422,9 @@ def documents_list():
     if not _current_user_id():
         return jsonify({"error": "Not authenticated"}), 401
     name = request.args.get("name") or None
-    return jsonify(get_documents(name=name))
+    group_id = request.args.get("group_id")
+    group_id = int(group_id) if group_id not in (None, "", "null") else None
+    return jsonify(get_documents(name=name, group_id=group_id))
 
 
 @app.route("/api/documents/search")
@@ -450,7 +464,8 @@ def documents_create():
         return jsonify({"error": error, "values": values}), 400
     pdf_filename, pdf_data = _read_pdf_upload()
     document_id = create_document(
-        user_id, values["description"], values["content"], values["link"], pdf_filename, pdf_data
+        user_id, values["group_id"], values["description"], values["content"], values["link"],
+        pdf_filename, pdf_data,
     )
     return jsonify(get_document(document_id)), 201
 
@@ -469,7 +484,10 @@ def documents_update(document_id):
     if error:
         return jsonify({"error": error, "values": values}), 400
     pdf_filename, pdf_data = _read_pdf_upload()
-    update_document(document_id, values["description"], values["content"], values["link"], pdf_filename, pdf_data)
+    update_document(
+        document_id, values["group_id"], values["description"], values["content"], values["link"],
+        pdf_filename, pdf_data,
+    )
     return jsonify(get_document(document_id))
 
 

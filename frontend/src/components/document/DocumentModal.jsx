@@ -14,6 +14,7 @@ async function saveDocument(document, values, pdfFile) {
   formData.append('description', values.description)
   formData.append('content', values.content)
   formData.append('link', values.link)
+  formData.append('group_id', values.group_id)
   if (pdfFile) formData.append('file', pdfFile)
   const res = await fetch(
     isEdit ? `${SERVER_URL}/api/documents/${document.id}` : `${SERVER_URL}/api/documents`,
@@ -42,7 +43,8 @@ async function extractPdf(file) {
 }
 
 export default function DocumentModal({ document, readOnly = false, onSaved, onClose }) {
-  const [values, setValues] = useState({ description: '', content: '', link: '' })
+  const [values, setValues] = useState({ description: '', content: '', link: '', group_id: '' })
+  const [groupOptions, setGroupOptions] = useState([])
   const [hasPdf, setHasPdf] = useState(false)
   const [pdfFile, setPdfFile] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -51,6 +53,12 @@ export default function DocumentModal({ document, readOnly = false, onSaved, onC
   const [extracting, setExtracting] = useState(false)
   const initialValuesRef = useRef(values)
   const isDirty = pdfFile || JSON.stringify(values) !== JSON.stringify(initialValuesRef.current)
+
+  useEffect(() => {
+    fetch(`${SERVER_URL}/api/groups/options`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(setGroupOptions)
+  }, [])
 
   useEffect(() => {
     if (!document?.id) {
@@ -63,6 +71,7 @@ export default function DocumentModal({ document, readOnly = false, onSaved, onC
           description: full.description || '',
           content: full.content || '',
           link: full.link || '',
+          group_id: full.group_id != null ? String(full.group_id) : '',
         }
         initialValuesRef.current = next
         setValues(next)
@@ -126,6 +135,20 @@ export default function DocumentModal({ document, readOnly = false, onSaved, onC
                   readOnly={readOnly}
                   autoFocus
                 />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Group</Form.Label>
+                <Form.Select
+                  className="form-input"
+                  value={values.group_id}
+                  onChange={e => setValues(v => ({ ...v, group_id: e.target.value }))}
+                  disabled={readOnly}
+                >
+                  <option value="">Select a group…</option>
+                  {groupOptions.map(o => (
+                    <option key={o.id} value={o.id}>{o.name}</option>
+                  ))}
+                </Form.Select>
               </Form.Group>
               {!readOnly && (
                 <Form.Group className="mb-3">
