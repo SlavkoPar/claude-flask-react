@@ -22,7 +22,7 @@ export default function AsyncAutocomplete({
   placeholder,
   requireSelection = false,
   clearAfterSelect = false,
-  debounceMs = 300,
+  debounceMs = 1000,
   className,
 }) {
   const inputRef = useRef(null)

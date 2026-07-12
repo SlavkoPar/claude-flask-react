@@ -32,7 +32,7 @@
    -- for answers use ` ↗` as text for link
    -- in SideBar for answers use ` ↗` as text for link, with no underscore
    -- in NavBar put links SignOut and Theme, as the dropdown,  bellow the user name
-   - instead of simle autocomplete, download and implement, everywhere, autocomplete from `tom-select` js library, use `debunce` for fetching the result, Run `yarn add tom-select`
+   - instead of simle autocomplete, download and implement, everywhere, autocomplete from `tom-select` js library, use `debounce` 1000ms, for fetching the result, Run `yarn add tom-select`
 
 
 

@@ -94,15 +94,15 @@ GOOGLE_REDIRECT_URI = f"{FRONTEND_URL}/auth/google/callback"
 with app.app_context():
     init_db()
     seed_db()
-    seed_groups()
-    seed_questions()
-    seed_answers()
-    seed_question_answers()
-    seed_documents()
-    backfill_document_groups()
-    backfill_document_embeddings()
-    backfill_answer_embeddings()
-    backfill_question_embeddings()
+    # seed_groups()
+    # seed_questions()
+    # seed_answers()
+    # seed_question_answers()
+    # seed_documents()
+    # backfill_document_groups()
+    # backfill_document_embeddings()
+    # backfill_answer_embeddings()
+    # backfill_question_embeddings()
 
 
 # ── Google OAuth ──────────────────────────────────────────────────────────────

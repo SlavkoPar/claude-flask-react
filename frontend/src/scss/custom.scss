@@ -521,6 +521,12 @@
   overflow-y: auto;
 }
 
+.document-content-textarea {
+  max-height: 40vh;
+  overflow-y: auto;
+  resize: vertical;
+}
+
 /////////////////////////////
 /// Sidebar
 
@@ -565,4 +571,25 @@
   border-radius: 4px;
   background-color: $cyan-100;
   padding: 0.75rem;
+}
+
+.sidebar-related-documents {
+  border-top: 1px solid $cyan-200;
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.sidebar-related-document {
+  background-color: $orange-100;
+  border-radius: 3px;
+  padding: 0.25rem 0.5rem;
+  margin-top: 0.35rem;
+
+  .title {
+    color: $orange-700;
+  }
+}
+
+.sidebar-related-document-snippet {
+  color: $gray-700;
 }

@@ -148,6 +148,22 @@ export default function SideBar({ open, onClose }) {
               <Button variant="success" size="sm" onClick={handleFixed}>Fixed</Button>
               <Button variant="outline-danger" size="sm" onClick={handleNotFixed}>Not Fixed</Button>
             </div>
+            {current.related_documents?.length > 0 && (
+              <div className="sidebar-related-documents">
+                <div className="text-muted small mb-1">Related documents</div>
+                {current.related_documents.map(doc => (
+                  <div key={doc.id} className="sidebar-related-document small">
+                    <div>
+                      <span className="title">{doc.description}</span>
+                      {doc.link && (
+                        <a href={doc.link} target="_blank" rel="noreferrer" className="answer-row-link"> ↗</a>
+                      )}
+                    </div>
+                    <div className="sidebar-related-document-snippet">{doc.snippet}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

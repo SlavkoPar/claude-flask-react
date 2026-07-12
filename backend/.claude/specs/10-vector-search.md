@@ -91,10 +91,15 @@ first use.
 No new dependencies.
 
 ## Rules for implementation
-- use vector search for searching pdfs for some question
-- inside of SideBar when searching for all answers from table `answers`, use vector search (faiss index),  which satisfy selected question, treat  `clicks_to_Fixed` for them equal 0
-- in SideBar, use `filter` for searching the Questions. When question is not found, search documents by `filter`. When found documents that satisfy search, use it as question. After presenting the answers, store filter to Questions table
-- search through the `questions` table the same way documents are searched — FAISS vector search, not `LIKE`
+  - In SideBar, search pdf documents, by filter, using vector search (faiss index).
+  - When some documents are found, find whole `sentence` inside of document, where `filter` is found, and treat it as the `questions.text`. Treat the whole `paragraph` where the filter was found, or the next `paragraph`, as the `answer`
+  - add these `answers` to the `answers` table
+  - Then for each document, find question by `questions.text`, use exact search
+  - when found 
+      -- if document date is newer than correspoding question created date, recreate question
+      -- else create a new question with text = `questions.text`
+  
+
 
 ## Definition of done
 - [x] Documents are searchable via FAISS vector search by question text

@@ -120,8 +120,8 @@ export default function DocumentForm() {
           <Form.Label>Content</Form.Label>
           <Form.Control
             as="textarea"
-            rows={8}
-            className="form-input"
+            rows={3}
+            className="form-input document-content-textarea"
             value={values.content}
             onChange={e => setValues(v => ({ ...v, content: e.target.value }))}
           />

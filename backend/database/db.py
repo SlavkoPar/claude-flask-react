@@ -797,10 +797,15 @@ def search_questions(query, limit=20):
     return [by_id[m["id"]] for m in matches if m["id"] in by_id]
 
 
+RELATED_DOCUMENTS_LIMIT = 3
+
+
 def get_candidate_answers(question_id, k=10):
     """Answers assigned to the question (real clicks_to_Fixed), plus answers not
     yet assigned whose embedding is a FAISS vector-search match for the question
-    text (treated as clicks_to_Fixed = 0). Ordered by clicks_to_Fixed desc."""
+    text (treated as clicks_to_Fixed = 0). Ordered by clicks_to_Fixed desc. Every
+    candidate carries the same `related_documents` — the question text's own
+    vector-search matches against `documents` — joined in as extra context."""
     question = get_question(question_id)
     if not question:
         return []
@@ -834,6 +839,10 @@ def get_candidate_answers(question_id, k=10):
 
     candidates = assigned + matched
     candidates.sort(key=lambda a: a["clicks_to_Fixed"], reverse=True)
+    if candidates:
+        related_documents = search_documents(question["text"], k=RELATED_DOCUMENTS_LIMIT)
+        for candidate in candidates:
+            candidate["related_documents"] = related_documents
     return candidates
 
 

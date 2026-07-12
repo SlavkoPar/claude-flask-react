@@ -49,12 +49,12 @@
 | --- | --- | --- |
 | id | INTEGER | Primary key, autoincrement |
 | user_id | INTEGER | Foreign key → users.id, not null |
+| group_id | INTEGER | Foreign key → groups.id, not null |
 | description | TEXT | Not null |
 | content | TEXT | Not null |
 | link | TEXT | Nullable |
 | pdf_filename | TEXT | null |
 | has_pdf | BOOLEAN | Default 0 |
-Justin Bieber joining Madonna, BTS and Shakira for 2026 FIFA World Cup Final Halftime Show| created_at | TEXT | Default datetime('now') |
 
 ## 12. Expected Behavior
 
@@ -75,18 +75,21 @@ Justin Bieber joining Madonna, BTS and Shakira for 2026 FIFA World Cup Final Hal
 ## New dependencies
 No new dependencies. 
 
-- filter documents by description
-
 
 ## Rules for implementation
+
+
 
 - **Modify**: add an "Documents" link to navbar, visible only when `session.user_id` is set
 - import rows from `database/import/documents.json`
 
-- for documents, enable autocomplete filter by description
+- make autocomplete filter documents by description, and group
+- enable grouping of documents by group
+- at the document row, add icon documentGroup
+- enable collapse/expand button
 - make documents visible for all the users, but only creator can modify or delete its document
 - for documents, set top and bottom paddings to: 1px 
-- set top and bottom paddings to 0.1rem for all  document rows
+- set top and bottom paddings to 0.08rem for all  document rows
 
 -- Open Modal when click od "Edit Document" 
 -- Modal width: 60% height: 80%
@@ -97,6 +100,7 @@ No new dependencies.
 - In the document row, put 'Edit link to short_desc
 - put icon `Doc` as the first column of the document row, justify content left
 - for rows of document, replace `Delete` with `X` icon and keep to the right
-- in Doc
+- make document content 3 rows height, with enabled vertical scroll
+
 ## Definition of done
 - [ ] Visiting `/documents` without being logged in redirects to `/login`

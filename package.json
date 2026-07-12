@@ -1,0 +1,14 @@
+{
+  "name": "my-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "api": "cd backend && flask run --no-debugger",
+    "dev": "cd frontend && yarn run dev"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+  }
+}
