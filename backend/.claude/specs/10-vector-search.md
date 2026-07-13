@@ -45,6 +45,32 @@
 >   step above depends on that "not found" signal, and a bare top-k vector
 >   search would otherwise always return *something* once any question
 >   exists.
+> - **2026-07-13 addendum** — the paragraph-extraction rule below (find the
+>   filter inside matched documents, turn the surrounding paragraph pair into
+>   answers, find-or-create the question by exact text, assign per document
+>   date) had been left unimplemented; `create_question_from_filter` only
+>   created a bare question and relied on the generic answers-table vector
+>   search. It's now implemented in `db.py`:
+>   `find_question_by_text` does the exact-text lookup (create only on miss);
+>   `_documents_matching_filter` re-runs the FAISS document search but
+>   returns full rows (content + created_at) sorted ascending by date;
+>   `_document_full_text`/`_document_paragraphs` normalize a document's text
+>   into paragraphs — PDF-derived `content` is the JSON `{"pages": [...]}`
+>   blob so pages are joined and, since `pypdf`-extracted text has no blank
+>   lines, "paragraph" falls back to one paragraph per line when no blank-line
+>   breaks exist (there's no reliable sentence boundary either, so "whole
+>   sentence" is read as "paragraph containing the filter substring,
+>   case-insensitive"); `_filter_paragraph_matches` pairs each matching
+>   paragraph with the one after it, per the "also the next paragraph" rule;
+>   `_get_or_create_answer_from_paragraph` inserts it as an answer (deduped by
+>   exact `description` match, `short_desc` truncated to 80 chars); and the
+>   document-date-vs-question-date comparison uses plain string comparison,
+>   safe since both columns share SQLite's `datetime('now')` format. Answers
+>   are only auto-*assigned* (via `assign_answer`, deduped against
+>   `question_answers`) when the document is newer than the question — for a
+>   brand-new question that's never true at creation time, so its extracted
+>   answers still surface to the user through the pre-existing vector-search
+>   candidate-answers path instead of an explicit assignment.
 
 
 > For document search (GET /api/documents/search?q=), I use semantic vector search, not keyword matching: The query text is embedded with the all-MiniLM-L6-v2 sentence-transformers model (384-dim vector, normalized).
@@ -58,9 +84,8 @@
 ## Overview
 
 ## Depends on
-- Step 9: Documents
-- Step 6: Answers
-- Step 7: Sidebar
+- Step 7: Documents
+- Step 9: Sidebar
 
 ## Routes
 - `GET /api/documents/search?q=` — semantic search over documents by question text
@@ -91,13 +116,16 @@ first use.
 No new dependencies.
 
 ## Rules for implementation
-  - In SideBar, search pdf documents, by filter, using vector search (faiss index).
-  - When some documents are found, find whole `sentence` inside of document, where `filter` is found, and treat it as the `questions.text`. Treat the whole `paragraph` where the filter was found, or the next `paragraph`, as the `answer`
-  - add these `answers` to the `answers` table
-  - Then for each document, find question by `questions.text`, use exact search
-  - when found 
-      -- if document date is newer than correspoding question created date, recreate question
-      -- else create a new question with text = `questions.text`
+  - In SideBar, use filter and search content of `pdf` documents, using vector search. Start search after at least 3 chars are entered. use faiss index. Don't remove new lines to enable `paragraph` recognition.
+  - Recognize `sentence` inside of document, where `filter` was found, by end point, new line or end of document.
+  - When some documents are found, treat the whole `paragraph` where the `sentence` was found, as the `answer`, also treat the next `paragraph` as the `answer`. There can be many paragraphs that `filter` satisfies.
+  - If document(s) have been found
+   -- add these `answers` to the `answers` table, avoid duplicate
+   -- order documents by date ascending
+   -- find question by use exact search, using `sentence`
+        --- if not found, create a new `question` with text = `sentence`
+   -- Then for each document
+      --- if document date is newer than correspoding `question created date`, assign these answers to `question`
   
 
 

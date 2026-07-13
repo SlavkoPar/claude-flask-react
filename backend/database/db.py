@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import sqlite3
 from werkzeug.security import generate_password_hash
 
@@ -473,10 +474,39 @@ def get_or_create_uncategorized_group(user_id):
     )
 
 
+def find_question_by_text(text):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM questions WHERE text = ?", (text,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
 def create_question_from_filter(user_id, text):
-    group_id = get_or_create_uncategorized_group(user_id)
-    question_id = create_question(user_id, group_id, text, None)
-    return get_question(question_id)
+    """Called once a sidebar filter matches no question but does match a
+    document: finds-or-creates (by exact text) a question for the filter,
+    then applies the vector-search spec's paragraph-extraction rule — scans
+    every document that vector-matches the filter for paragraphs containing
+    it verbatim, stores them as answers (deduped), and assigns each to the
+    question whenever its document is newer than the question itself."""
+    question = find_question_by_text(text)
+    if not question:
+        group_id = get_or_create_uncategorized_group(user_id)
+        question_id = create_question(user_id, group_id, text, None)
+        question = get_question(question_id)
+
+    assigned_any = False
+    for document in _documents_matching_filter(text):
+        paragraphs = _filter_paragraph_matches(document["content"], text)
+        if not paragraphs:
+            continue
+        answer_ids = [_get_or_create_answer_from_paragraph(user_id, p) for p in paragraphs]
+        if document["created_at"] > question["created_at"]:
+            for answer_id in answer_ids:
+                if not _is_answer_assigned(question["id"], answer_id):
+                    assign_answer(user_id, question["id"], answer_id)
+                    assigned_any = True
+
+    return get_question(question["id"]) if assigned_any else question
 
 
 def update_question(question_id, text, description):
@@ -496,6 +526,7 @@ def delete_question(question_id):
         "SELECT group_id FROM questions WHERE id = ?", (question_id,)
     ).fetchone()
     group_id = old["group_id"] if old else None
+    conn.execute("DELETE FROM question_answers WHERE question_id = ?", (question_id,))
     conn.execute("DELETE FROM questions WHERE id = ?", (question_id,))
     if group_id is not None:
         _recompute_num_of_questions(conn, group_id)
@@ -615,6 +646,86 @@ def search_documents(query, k=5):
         r["distance"] = distance_by_id[r["id"]]
     results.sort(key=lambda r: r["distance"])
     return results
+
+
+def _document_full_text(content):
+    """PDF-derived documents store `content` as JSON `{"filename", "pages":
+    [...]}`; documents created directly hold plain text. Returns the text to
+    run filter/paragraph matching against either way."""
+    try:
+        parsed = json.loads(content)
+    except (ValueError, TypeError):
+        return content
+    if isinstance(parsed, dict) and "pages" in parsed:
+        return "\n\n".join(parsed["pages"])
+    return content
+
+
+def _document_paragraphs(text):
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+    if len(paragraphs) > 1:
+        return paragraphs
+    # No blank-line breaks (e.g. PDF-extracted text) — one paragraph per line
+    return [line.strip() for line in text.splitlines() if line.strip()]
+
+
+def _filter_paragraph_matches(content, filter_text):
+    """Find every paragraph containing `filter_text` (case-insensitive
+    substring, standing in for "whole sentence" since extracted PDF text has
+    no reliable sentence boundaries) plus the paragraph right after it. A
+    document can contain more than one match."""
+    paragraphs = _document_paragraphs(_document_full_text(content))
+    needle = filter_text.lower()
+    matches = []
+    for i, para in enumerate(paragraphs):
+        if needle in para.lower():
+            pair = para if i + 1 >= len(paragraphs) else f"{para}\n{paragraphs[i + 1]}"
+            matches.append(pair)
+    return matches
+
+
+def _documents_matching_filter(filter_text, k=5):
+    """Same FAISS document search as search_documents, but returns full rows
+    (content + created_at) needed to extract filter-matched answers, ordered
+    by created_at ascending per the vector-search spec's assignment rule."""
+    matches = vector_store.search("documents", filter_text, k=k)
+    if not matches:
+        return []
+    conn = get_db()
+    placeholders = ",".join("?" for _ in matches)
+    rows = conn.execute(
+        f"SELECT id, content, created_at FROM documents WHERE id IN ({placeholders})",
+        [m["id"] for m in matches],
+    ).fetchall()
+    conn.close()
+    results = [dict(r) for r in rows]
+    results.sort(key=lambda r: r["created_at"])
+    return results
+
+
+def _find_answer_by_description(description):
+    conn = get_db()
+    row = conn.execute("SELECT id FROM answers WHERE description = ?", (description,)).fetchone()
+    conn.close()
+    return row["id"] if row else None
+
+
+def _get_or_create_answer_from_paragraph(user_id, paragraph):
+    existing_id = _find_answer_by_description(paragraph)
+    if existing_id:
+        return existing_id
+    short_desc = paragraph if len(paragraph) <= 80 else paragraph[:77] + "…"
+    return create_answer(user_id, short_desc, paragraph, None)
+
+
+def _is_answer_assigned(question_id, answer_id):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT id FROM question_answers WHERE question_id = ? AND answer_id = ?",
+        (question_id, answer_id),
+    ).fetchone()
+    conn.close()
+    return row is not None
 
 
 def backfill_document_groups():

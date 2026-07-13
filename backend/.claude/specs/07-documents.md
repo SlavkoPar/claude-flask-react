@@ -103,4 +103,4 @@ No new dependencies.
 - make document content 3 rows height, with enabled vertical scroll
 
 ## Definition of done
-- [ ] Visiting `/documents` without being logged in redirects to `/login`
+- [x] Visiting `/documents` without being logged in redirects to `/login`
