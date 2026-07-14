@@ -24,7 +24,7 @@
 | id | INTEGER | Primary key, autoincrement |
 | parent_id | INTEGER | Foreign key → groups.id |
 | user_id | INTEGER | Foreign key → users.id, not null |
-| name | TEXT | Not null |
+| name | TEXT | Not null, unique per parent (parent_id, name) |
 | description | TEXT | Nullable |
 | has_child_groups | BOOLEAN | Default False 
 | created_at | TEXT | Default datetime('now') |
@@ -44,6 +44,14 @@
 
 ## New dependencies
 No new dependencies. 
+
+> **2026-07-14 addendum** — `(parent_id, name)` made `UNIQUE` (siblings under
+> the same parent can't share a name, but the same name is allowed under
+> different parents — matches existing seed data, e.g. "TV" exists as a child
+> of two different groups). Enforced via `idx_groups_parent_name`, added in
+> `init_db()`. `create_group`/`update_group` in `db.py` are now wrapped in
+> `try/finally` so the connection still closes on a constraint violation, and
+> `POST/PUT /api/groups` catch `sqlite3.IntegrityError` and return 400.
 
 ## Error Handling Expectations
 

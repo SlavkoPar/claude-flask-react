@@ -222,7 +222,10 @@ def groups_create():
     values, error = _parse_group_payload(data)
     if error:
         return jsonify({"error": error, "values": values}), 400
-    group_id = create_group(user_id, values["name"], values["parent_id"], values["description"])
+    try:
+        group_id = create_group(user_id, values["name"], values["parent_id"], values["description"])
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "A group with this name already exists under the same parent", "values": values}), 400
     return jsonify(get_group(group_id)), 201
 
 
@@ -236,7 +239,10 @@ def groups_update(group_id):
     values, error = _parse_group_payload(data)
     if error:
         return jsonify({"error": error, "values": values}), 400
-    update_group(group_id, values["name"], values["parent_id"], values["description"])
+    try:
+        update_group(group_id, values["name"], values["parent_id"], values["description"])
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "A group with this name already exists under the same parent", "values": values}), 400
     return jsonify(get_group(group_id))
 
 
@@ -289,7 +295,10 @@ def questions_create():
     values, error = _parse_question_payload(data)
     if error:
         return jsonify({"error": error, "values": values}), 400
-    question_id = create_question(user_id, int(group_id), values["text"], values["description"])
+    try:
+        question_id = create_question(user_id, int(group_id), values["text"], values["description"])
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "A question with this text already exists", "values": values}), 400
     return jsonify(get_question(question_id)), 201
 
 
@@ -303,7 +312,10 @@ def questions_update(question_id):
     values, error = _parse_question_payload(data)
     if error:
         return jsonify({"error": error, "values": values}), 400
-    update_question(question_id, values["text"], values["description"])
+    try:
+        update_question(question_id, values["text"], values["description"])
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "A question with this text already exists", "values": values}), 400
     return jsonify(get_question(question_id))
 
 
@@ -359,7 +371,10 @@ def answers_create():
     values, error = _parse_answer_payload(data)
     if error:
         return jsonify({"error": error, "values": values}), 400
-    answer_id = create_answer(user_id, values["short_desc"], values["description"], values["link"])
+    try:
+        answer_id = create_answer(user_id, values["short_desc"], values["description"], values["link"])
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "An answer with this short description already exists", "values": values}), 400
     return jsonify(get_answer(answer_id)), 201
 
 
@@ -373,7 +388,10 @@ def answers_update(answer_id):
     values, error = _parse_answer_payload(data)
     if error:
         return jsonify({"error": error, "values": values}), 400
-    update_answer(answer_id, values["short_desc"], values["description"], values["link"])
+    try:
+        update_answer(answer_id, values["short_desc"], values["description"], values["link"])
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "An answer with this short description already exists", "values": values}), 400
     return jsonify(get_answer(answer_id))
 
 

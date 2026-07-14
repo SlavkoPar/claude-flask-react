@@ -17,6 +17,14 @@
 > - Global `.form-input` padding set to `0.125rem 0.875rem` per the spec; answer
 >   rows get a distinct style (accent-2 colours, 0.1rem row padding).
 > - Tests: `tests/test_answers.py`.
+> - **2026-07-14 addendum** — `short_desc` made `UNIQUE` (enforced via
+>   `idx_answers_short_desc`, backfilled for pre-existing databases in
+>   `init_db()`). `create_answer`/`update_answer` in `db.py` are now wrapped in
+>   `try/finally` so the connection still closes on a constraint violation, and
+>   `POST/PUT /api/answers` catch `sqlite3.IntegrityError` and return 400. The
+>   vector-search paragraph-extraction helper (`_get_or_create_answer_from_paragraph`
+>   in `10-vector-search.md`) falls back to looking up the existing row by
+>   `short_desc` if two distinct paragraphs happen to truncate to the same value.
 
 ## Overview
 
@@ -37,7 +45,7 @@
 | --- | --- | --- |
 | id | INTEGER | Primary key, autoincrement |
 | user_id | INTEGER | Foreign key → users.id, not null |
-| short_desc | TEXT | Not null |
+| short_desc | TEXT | Not null, unique |
 | description | TEXT | Nullable |
 | link | TEXT | Nullable |
 | created_at | TEXT | Default datetime('now') |

@@ -22,7 +22,7 @@
 | id | INTEGER | Primary key, autoincrement |
 | user_id | INTEGER | Foreign key → users.id, not null |
 | group_id | INTEGER | Foreign key → group.id, not null |
-| text | TEXT | Not null |
+| text | TEXT | Not null, unique |
 | description | TEXT | Nullable |
 | created_at | TEXT | Default datetime('now') |
 | modified_at | TEXT | Default datetime('now') |
@@ -42,13 +42,19 @@
 ## New dependencies
 No new dependencies. 
 
+> **2026-07-14 addendum** — `text` made `UNIQUE` (enforced via
+> `idx_questions_text`, added in `init_db()`). `create_question`/`update_question`
+> in `db.py` are now wrapped in `try/finally` so the connection still closes on
+> a constraint violation, and `POST/PUT /api/questions` catch
+> `sqlite3.IntegrityError` and return 400.
+
 ## Error Handling Expectations
 
 - Inserting question with invalid `user_id` → should fail (foreign key constraint)
 
 
 ## Rules for implementation
-- maintain `modified_at` on update of question
+- on question create set `modified_at` eq to `created_at` and maintain on update of question
 - import rows from `database/import/questions.json`
     - All linked to the demo user (`user_id = 1`)
     - Preserve each group's explicit `id`

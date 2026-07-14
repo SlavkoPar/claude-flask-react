@@ -71,6 +71,13 @@
 >   brand-new question that's never true at creation time, so its extracted
 >   answers still surface to the user through the pre-existing vector-search
 >   candidate-answers path instead of an explicit assignment.
+> - **2026-07-14 addendum** — added the "filter found in description only"
+>   rule: `create_question_from_filter` now falls back to using a matched
+>   document's whole content as the answer when `_filter_paragraph_matches`
+>   finds nothing in the content but the filter text is a substring of the
+>   document's `description` (e.g. a filter that names the document's topic
+>   without appearing verbatim in its extracted text). `_documents_matching_filter`
+>   now also selects `description` to support this check.
 
 
 > For document search (GET /api/documents/search?q=), I use semantic vector search, not keyword matching: The query text is embedded with the all-MiniLM-L6-v2 sentence-transformers model (384-dim vector, normalized).
@@ -116,14 +123,14 @@ first use.
 No new dependencies.
 
 ## Rules for implementation
-  - In SideBar, use filter and search description or content of `pdf` documents, using vector search. Start search after at least 3 chars are entered. Use faiss index. Don't remove new lines to enable `paragraph` recognition.
+  - In SideBar, use filter and search description or content of `pdf` documents, using vector search. If filter was found in description only, treat whole content as the answer. Start search after at least 3 chars are entered. Use faiss index. Don't remove new lines to enable `paragraph` recognition.
   - Recognize `sentence` inside of document, where `filter` was found, by end point, new line or end of document.
   - When some documents are found, treat the whole `paragraph` where the `sentence` was found, as the `answer`, also treat the next `paragraph` as the `answer`. There can be many paragraphs that `filter` satisfies.
   - If document(s) have been found
    -- add these `answers` to the `answers` table, avoid duplicate
    -- order documents by date ascending
    -- find question by using exact search, using `sentence`
-        --- if not found, create a new `question` with text = `sentence`
+        --- if question was not found, create a new `question` with text equal to `sentence`
    -- Then for each document
       --- if document date is newer than correspoding `question.modified_at`, assign these answers to `question`
   

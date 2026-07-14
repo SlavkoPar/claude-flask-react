@@ -52,7 +52,8 @@ def init_db():
             name TEXT NOT NULL,
             description TEXT,
             has_child_groups BOOLEAN NOT NULL DEFAULT 0,
-            created_at TEXT DEFAULT (datetime('now'))
+            created_at TEXT DEFAULT (datetime('now')),
+            UNIQUE (parent_id, name)
         )
     """)
     conn.commit()
@@ -62,6 +63,10 @@ def init_db():
         conn.commit()
     except sqlite3.OperationalError:
         pass  # column already exists
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_parent_name ON groups (parent_id, name)"
+    )
+    conn.commit()
     conn.close()
 
     conn = get_db()
@@ -70,7 +75,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL REFERENCES users(id),
             group_id INTEGER NOT NULL REFERENCES groups(id),
-            text TEXT NOT NULL,
+            text TEXT NOT NULL UNIQUE,
             description TEXT,
             created_at TEXT DEFAULT (datetime('now')),
             modified_at TEXT DEFAULT (datetime('now'))
@@ -89,6 +94,10 @@ def init_db():
         conn.commit()
     except sqlite3.OperationalError:
         pass  # column already exists
+    conn.execute("UPDATE questions SET modified_at = created_at WHERE modified_at IS NULL")
+    conn.commit()
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_questions_text ON questions (text)")
+    conn.commit()
     conn.close()
 
     conn = get_db()
@@ -96,12 +105,14 @@ def init_db():
         CREATE TABLE IF NOT EXISTS answers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL REFERENCES users(id),
-            short_desc TEXT NOT NULL,
+            short_desc TEXT NOT NULL UNIQUE,
             description TEXT,
             link TEXT,
             created_at TEXT DEFAULT (datetime('now'))
         )
     """)
+    conn.commit()
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_answers_short_desc ON answers (short_desc)")
     conn.commit()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS question_answers (
@@ -369,32 +380,36 @@ def _recompute_has_child_groups(conn, group_id):
 
 def create_group(user_id, name, parent_id, description):
     conn = get_db()
-    cursor = conn.execute(
-        "INSERT INTO groups (parent_id, user_id, name, description) VALUES (?, ?, ?, ?)",
-        (parent_id, user_id, name, description),
-    )
-    group_id = cursor.lastrowid
-    _recompute_has_child_groups(conn, parent_id)
-    conn.commit()
-    conn.close()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO groups (parent_id, user_id, name, description) VALUES (?, ?, ?, ?)",
+            (parent_id, user_id, name, description),
+        )
+        group_id = cursor.lastrowid
+        _recompute_has_child_groups(conn, parent_id)
+        conn.commit()
+    finally:
+        conn.close()
     return group_id
 
 
 def update_group(group_id, name, parent_id, description):
     conn = get_db()
-    old = conn.execute(
-        "SELECT parent_id FROM groups WHERE id = ?", (group_id,)
-    ).fetchone()
-    old_parent_id = old["parent_id"] if old else None
-    conn.execute(
-        "UPDATE groups SET name = ?, parent_id = ?, description = ? WHERE id = ?",
-        (name, parent_id, description, group_id),
-    )
-    _recompute_has_child_groups(conn, old_parent_id)
-    if parent_id != old_parent_id:
-        _recompute_has_child_groups(conn, parent_id)
-    conn.commit()
-    conn.close()
+    try:
+        old = conn.execute(
+            "SELECT parent_id FROM groups WHERE id = ?", (group_id,)
+        ).fetchone()
+        old_parent_id = old["parent_id"] if old else None
+        conn.execute(
+            "UPDATE groups SET name = ?, parent_id = ?, description = ? WHERE id = ?",
+            (name, parent_id, description, group_id),
+        )
+        _recompute_has_child_groups(conn, old_parent_id)
+        if parent_id != old_parent_id:
+            _recompute_has_child_groups(conn, parent_id)
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def delete_group(group_id):
@@ -454,15 +469,17 @@ def backfill_question_embeddings():
 
 def create_question(user_id, group_id, text, description):
     conn = get_db()
-    cursor = conn.execute(
-        "INSERT INTO questions (user_id, group_id, text, description, modified_at) "
-        "VALUES (?, ?, ?, ?, datetime('now'))",
-        (user_id, group_id, text, description),
-    )
-    question_id = cursor.lastrowid
-    _recompute_num_of_questions(conn, group_id)
-    conn.commit()
-    conn.close()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO questions (user_id, group_id, text, description, modified_at) "
+            "VALUES (?, ?, ?, ?, datetime('now'))",
+            (user_id, group_id, text, description),
+        )
+        question_id = cursor.lastrowid
+        _recompute_num_of_questions(conn, group_id)
+        conn.commit()
+    finally:
+        conn.close()
     vector_store.add_embedding("questions", question_id, _question_embedding_text(text, description))
     return question_id
 
@@ -495,7 +512,10 @@ def create_question_from_filter(user_id, text):
     then applies the vector-search spec's paragraph-extraction rule — scans
     every document that vector-matches the filter for paragraphs containing
     it verbatim, stores them as answers (deduped), and assigns each to the
-    question whenever its document is newer than the question itself."""
+    question whenever its document is newer than the question's modified_at.
+    If the filter only appears in the document's description (not its
+    content), the whole content is used as the answer instead of an empty
+    paragraph match."""
     question = find_question_by_text(text)
     if not question:
         group_id = get_or_create_uncategorized_group(user_id)
@@ -505,10 +525,12 @@ def create_question_from_filter(user_id, text):
     assigned_any = False
     for document in _documents_matching_filter(text):
         paragraphs = _filter_paragraph_matches(document["content"], text)
+        if not paragraphs and text.lower() in (document["description"] or "").lower():
+            paragraphs = [_document_full_text(document["content"])]
         if not paragraphs:
             continue
         answer_ids = [_get_or_create_answer_from_paragraph(user_id, p) for p in paragraphs]
-        if document["created_at"] > question["created_at"]:
+        if document["created_at"] > question["modified_at"]:
             for answer_id in answer_ids:
                 if not _is_answer_assigned(question["id"], answer_id):
                     assign_answer(user_id, question["id"], answer_id)
@@ -519,12 +541,14 @@ def create_question_from_filter(user_id, text):
 
 def update_question(question_id, text, description):
     conn = get_db()
-    conn.execute(
-        "UPDATE questions SET text = ?, description = ?, modified_at = datetime('now') WHERE id = ?",
-        (text, description, question_id),
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            "UPDATE questions SET text = ?, description = ?, modified_at = datetime('now') WHERE id = ?",
+            (text, description, question_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
     vector_store.add_embedding("questions", question_id, _question_embedding_text(text, description))
 
 
@@ -580,25 +604,29 @@ def get_answer(answer_id):
 
 def create_answer(user_id, short_desc, description, link):
     conn = get_db()
-    cursor = conn.execute(
-        "INSERT INTO answers (user_id, short_desc, description, link) VALUES (?, ?, ?, ?)",
-        (user_id, short_desc, description, link),
-    )
-    answer_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO answers (user_id, short_desc, description, link) VALUES (?, ?, ?, ?)",
+            (user_id, short_desc, description, link),
+        )
+        answer_id = cursor.lastrowid
+        conn.commit()
+    finally:
+        conn.close()
     vector_store.add_embedding("answers", answer_id, _answer_embedding_text(short_desc, description))
     return answer_id
 
 
 def update_answer(answer_id, short_desc, description, link):
     conn = get_db()
-    conn.execute(
-        "UPDATE answers SET short_desc = ?, description = ?, link = ? WHERE id = ?",
-        (short_desc, description, link, answer_id),
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            "UPDATE answers SET short_desc = ?, description = ?, link = ? WHERE id = ?",
+            (short_desc, description, link, answer_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
     vector_store.add_embedding("answers", answer_id, _answer_embedding_text(short_desc, description))
 
 
@@ -702,7 +730,7 @@ def _documents_matching_filter(filter_text, k=5):
     conn = get_db()
     placeholders = ",".join("?" for _ in matches)
     rows = conn.execute(
-        f"SELECT id, content, created_at FROM documents WHERE id IN ({placeholders})",
+        f"SELECT id, description, content, created_at FROM documents WHERE id IN ({placeholders})",
         [m["id"] for m in matches],
     ).fetchall()
     conn.close()
@@ -718,12 +746,24 @@ def _find_answer_by_description(description):
     return row["id"] if row else None
 
 
+def _find_answer_by_short_desc(short_desc):
+    conn = get_db()
+    row = conn.execute("SELECT id FROM answers WHERE short_desc = ?", (short_desc,)).fetchone()
+    conn.close()
+    return row["id"] if row else None
+
+
 def _get_or_create_answer_from_paragraph(user_id, paragraph):
     existing_id = _find_answer_by_description(paragraph)
     if existing_id:
         return existing_id
     short_desc = paragraph if len(paragraph) <= 80 else paragraph[:77] + "…"
-    return create_answer(user_id, short_desc, paragraph, None)
+    try:
+        return create_answer(user_id, short_desc, paragraph, None)
+    except sqlite3.IntegrityError:
+        # Two distinct paragraphs can truncate to the same short_desc (now UNIQUE)
+        # even though their full descriptions differ — reuse the existing answer.
+        return _find_answer_by_short_desc(short_desc)
 
 
 def _is_answer_assigned(question_id, answer_id):

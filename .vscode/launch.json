@@ -15,6 +15,7 @@
             "--no-reload"
          ],
          "jinja": false,
+         "console": "internalConsole",
          "cwd": "${workspaceFolder}/backend"
       },
       {
