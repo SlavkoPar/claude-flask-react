@@ -116,16 +116,16 @@ first use.
 No new dependencies.
 
 ## Rules for implementation
-  - In SideBar, use filter and search content of `pdf` documents, using vector search. Start search after at least 3 chars are entered. use faiss index. Don't remove new lines to enable `paragraph` recognition.
+  - In SideBar, use filter and search description or content of `pdf` documents, using vector search. Start search after at least 3 chars are entered. Use faiss index. Don't remove new lines to enable `paragraph` recognition.
   - Recognize `sentence` inside of document, where `filter` was found, by end point, new line or end of document.
   - When some documents are found, treat the whole `paragraph` where the `sentence` was found, as the `answer`, also treat the next `paragraph` as the `answer`. There can be many paragraphs that `filter` satisfies.
   - If document(s) have been found
    -- add these `answers` to the `answers` table, avoid duplicate
    -- order documents by date ascending
-   -- find question by use exact search, using `sentence`
+   -- find question by using exact search, using `sentence`
         --- if not found, create a new `question` with text = `sentence`
    -- Then for each document
-      --- if document date is newer than correspoding `question created date`, assign these answers to `question`
+      --- if document date is newer than correspoding `question.modified_at`, assign these answers to `question`
   
 
 

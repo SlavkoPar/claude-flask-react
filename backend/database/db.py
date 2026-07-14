@@ -72,13 +72,20 @@ def init_db():
             group_id INTEGER NOT NULL REFERENCES groups(id),
             text TEXT NOT NULL,
             description TEXT,
-            created_at TEXT DEFAULT (datetime('now'))
+            created_at TEXT DEFAULT (datetime('now')),
+            modified_at TEXT DEFAULT (datetime('now'))
         )
     """)
     conn.commit()
     # Migration: add num_of_assigned_answers to databases created before this column existed
     try:
         conn.execute("ALTER TABLE questions ADD COLUMN num_of_assigned_answers INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # column already exists
+    # Migration: add modified_at to databases created before this column existed
+    try:
+        conn.execute("ALTER TABLE questions ADD COLUMN modified_at TEXT")
         conn.commit()
     except sqlite3.OperationalError:
         pass  # column already exists
@@ -448,7 +455,8 @@ def backfill_question_embeddings():
 def create_question(user_id, group_id, text, description):
     conn = get_db()
     cursor = conn.execute(
-        "INSERT INTO questions (user_id, group_id, text, description) VALUES (?, ?, ?, ?)",
+        "INSERT INTO questions (user_id, group_id, text, description, modified_at) "
+        "VALUES (?, ?, ?, ?, datetime('now'))",
         (user_id, group_id, text, description),
     )
     question_id = cursor.lastrowid
@@ -512,7 +520,7 @@ def create_question_from_filter(user_id, text):
 def update_question(question_id, text, description):
     conn = get_db()
     conn.execute(
-        "UPDATE questions SET text = ?, description = ? WHERE id = ?",
+        "UPDATE questions SET text = ?, description = ?, modified_at = datetime('now') WHERE id = ?",
         (text, description, question_id),
     )
     conn.commit()
