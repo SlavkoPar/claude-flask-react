@@ -25,6 +25,7 @@
 | text | TEXT | Not null |
 | description | TEXT | Nullable |
 | created_at | TEXT | Default datetime('now') |
+| modified_at | TEXT | Default datetime('now') |
 
 ## Update table `groups`
 - add column `num_of_questions` | INTEGER | Default 0
@@ -47,6 +48,7 @@ No new dependencies.
 
 
 ## Rules for implementation
+- maintain `modified_at` on update of question
 - import rows from `database/import/questions.json`
     - All linked to the demo user (`user_id = 1`)
     - Preserve each group's explicit `id`
