@@ -55,6 +55,7 @@
 | link | TEXT | Nullable |
 | pdf_filename | TEXT | null |
 | has_pdf | BOOLEAN | Default 0 |
+| created_at | TEXT | Default datetime('now') |
 
 ## 12. Expected Behavior
 

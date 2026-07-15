@@ -508,35 +508,45 @@ def find_question_by_text(text):
 
 def create_question_from_filter(user_id, text):
     """Called once a sidebar filter matches no question but does match a
-    document: finds-or-creates (by exact text) a question for the filter,
-    then applies the vector-search spec's paragraph-extraction rule — scans
-    every document that vector-matches the filter for paragraphs containing
-    it verbatim, stores them as answers (deduped), and assigns each to the
-    question whenever its document is newer than the question's modified_at.
-    If the filter only appears in the document's description (not its
-    content), the whole content is used as the answer instead of an empty
-    paragraph match."""
-    question = find_question_by_text(text)
-    if not question:
-        group_id = get_or_create_uncategorized_group(user_id)
-        question_id = create_question(user_id, group_id, text, None)
-        question = get_question(question_id)
-
-    assigned_any = False
+    document: scans every document that vector-matches the filter (oldest
+    first) for paragraphs containing it verbatim, stores them as answers
+    (deduped). If the filter only appears in the document's description (not
+    its content), the whole content is used as the answer instead. Per
+    document, the `sentence` surrounding the filter match is used to
+    find-or-create a question by exact text — a brand-new question gets the
+    extracted answers assigned immediately, an existing one only when the
+    document is newer than its modified_at. Returns the last document's
+    question (or None if the filter wasn't found verbatim in any matched
+    document's content or description)."""
+    question = None
     for document in _documents_matching_filter(text):
+        content_text = _document_full_text(document["content"])
         paragraphs = _filter_paragraph_matches(document["content"], text)
+        sentence = _extract_sentence(content_text, text)
         if not paragraphs and text.lower() in (document["description"] or "").lower():
-            paragraphs = [_document_full_text(document["content"])]
-        if not paragraphs:
+            paragraphs = [content_text]
+            sentence = _extract_sentence(document["description"], text)
+        if not paragraphs or not sentence:
             continue
-        answer_ids = [_get_or_create_answer_from_paragraph(user_id, p) for p in paragraphs]
-        if document["created_at"] > question["modified_at"]:
-            for answer_id in answer_ids:
-                if not _is_answer_assigned(question["id"], answer_id):
-                    assign_answer(user_id, question["id"], answer_id)
-                    assigned_any = True
 
-    return get_question(question["id"]) if assigned_any else question
+        answer_ids = [_get_or_create_answer_from_paragraph(user_id, p) for p in paragraphs]
+
+        found = find_question_by_text(sentence)
+        if not found:
+            group_id = get_or_create_uncategorized_group(user_id)
+            question_id = create_question(user_id, group_id, sentence, None)
+            found = get_question(question_id)
+            for answer_id in answer_ids:
+                if not _is_answer_assigned(found["id"], answer_id):
+                    assign_answer(user_id, found["id"], answer_id)
+        elif document["created_at"] > found["modified_at"]:
+            for answer_id in answer_ids:
+                if not _is_answer_assigned(found["id"], answer_id):
+                    assign_answer(user_id, found["id"], answer_id)
+
+        question = get_question(found["id"])
+
+    return question
 
 
 def update_question(question_id, text, description):
@@ -707,9 +717,8 @@ def _document_paragraphs(text):
 
 def _filter_paragraph_matches(content, filter_text):
     """Find every paragraph containing `filter_text` (case-insensitive
-    substring, standing in for "whole sentence" since extracted PDF text has
-    no reliable sentence boundaries) plus the paragraph right after it. A
-    document can contain more than one match."""
+    substring) plus the paragraph right after it. A document can contain more
+    than one match."""
     paragraphs = _document_paragraphs(_document_full_text(content))
     needle = filter_text.lower()
     matches = []
@@ -718,6 +727,22 @@ def _filter_paragraph_matches(content, filter_text):
             pair = para if i + 1 >= len(paragraphs) else f"{para}\n{paragraphs[i + 1]}"
             matches.append(pair)
     return matches
+
+
+def _extract_sentence(text, filter_text):
+    """Return the sentence around the first case-insensitive occurrence of
+    `filter_text` in `text`, bounded by a period, a newline, or the start/end
+    of the document. Used as the question text when a sidebar filter is saved
+    from a document match. Returns None if `filter_text` isn't found."""
+    idx = text.lower().find(filter_text.lower())
+    if idx == -1:
+        return None
+    start = max(text.rfind(".", 0, idx), text.rfind("\n", 0, idx)) + 1
+    match_end = idx + len(filter_text)
+    end_candidates = [e for e in (text.find(".", match_end), text.find("\n", match_end)) if e != -1]
+    end = min(end_candidates) if end_candidates else len(text)
+    sentence = text[start:end].strip()
+    return sentence or None
 
 
 def _documents_matching_filter(filter_text, k=5):

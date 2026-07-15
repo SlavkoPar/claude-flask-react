@@ -78,6 +78,24 @@
 >   document's `description` (e.g. a filter that names the document's topic
 >   without appearing verbatim in its extracted text). `_documents_matching_filter`
 >   now also selects `description` to support this check.
+> - **2026-07-15 addendum** — reworked `create_question_from_filter` per the
+>   revised rule text: the question is no longer created from the raw sidebar
+>   filter text up front. Instead, for each matched document (still oldest
+>   first), a new `_extract_sentence(text, filter_text)` finds the `sentence`
+>   around the filter's first occurrence — bounded by a period, a newline, or
+>   the document's start/end (extracted from the description instead when the
+>   filter was only found there). That `sentence` is the exact-text
+>   find-or-create key for the question, and the find-or-create + assignment
+>   both happen per document rather than once upfront: a brand-new question
+>   gets its document's extracted answers assigned immediately (no more
+>   waiting for a later "newer document" to trigger the first assignment), an
+>   existing one only when this document is newer than its `modified_at`. If
+>   a filter matches multiple documents, each can resolve to a different
+>   question (different documents legitimately contain different sentences);
+>   the function returns the last document's question, or `None` if the
+>   filter wasn't found verbatim (content or description) in any matched
+>   document. `POST /api/questions/from-filter` now returns 404 in that `None`
+>   case instead of `null` with a 201.
 
 
 > For document search (GET /api/documents/search?q=), I use semantic vector search, not keyword matching: The query text is embedded with the all-MiniLM-L6-v2 sentence-transformers model (384-dim vector, normalized).
@@ -123,19 +141,24 @@ first use.
 No new dependencies.
 
 ## Rules for implementation
-  - In SideBar, use filter and search description or content of `pdf` documents, using vector search. If filter was found in description only, treat whole content as the answer. Start search after at least 3 chars are entered. Use faiss index. Don't remove new lines to enable `paragraph` recognition.
-  - Recognize `sentence` inside of document, where `filter` was found, by end point, new line or end of document.
-  - When some documents are found, treat the whole `paragraph` where the `sentence` was found, as the `answer`, also treat the next `paragraph` as the `answer`. There can be many paragraphs that `filter` satisfies.
-  - If document(s) have been found
-   -- add these `answers` to the `answers` table, avoid duplicate
-   -- order documents by date ascending
-   -- find question by using exact search, using `sentence`
-        --- if question was not found, create a new `question` with text equal to `sentence`
-   -- Then for each document
-      --- if document date is newer than correspoding `question.modified_at`, assign these answers to `question`
+  - In SideBar, use filter and search description or content of `pdf` documents, using vector search. Start search after at least 3 chars are entered. Use faiss index. Don't remove new lines to enable `paragraph` recognition.
+
+- Recognize `sentence` inside of document, where `filter` was found, by end point, new line or end of document. There can be multiple sentences.
+
+  - If filter was found in `description` only, not in the `content`, create question, treat whole `content` as the `answer`, add answer and assign to question. 
   
+  - else When some documents are found, recognize `paragraph` by empty line or end of doc. Treat the whole `paragraph` inside of which `sentence` was found, as the `answer`, also treat the next `paragraph` as the `answer`. There can be many paragraphs that `filter` satisfies. 
 
+  - If document(s) have been found,  order documents by `created_at` ascending
+    -- for each `sentence` recognized in document
+      --- find question by using exact search, using `sentence`
+         ----- if question is not found, create a new `question` with text equal to `sentence`
+         ----- else if document `created_at` is newer than correspoding `question.modified_at`
+           ------- add `answers` recognized to the `answers` table, avoid duplicate
+           ------- assign answers to the `question`
 
+   -- 
+   
 ## Definition of done
 - [x] Documents are searchable via FAISS vector search by question text
 - [x] Sidebar candidate answers use vector search instead of SOUNDEX

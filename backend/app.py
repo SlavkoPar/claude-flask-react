@@ -625,7 +625,10 @@ def questions_create_from_filter():
     text = (data.get("text") or "").strip()
     if not text:
         return jsonify({"error": "Text is required"}), 400
-    return jsonify(create_question_from_filter(user_id, text)), 201
+    question = create_question_from_filter(user_id, text)
+    if not question:
+        return jsonify({"error": "Filter text was not found verbatim in any matched document"}), 404
+    return jsonify(question), 201
 
 
 @app.route("/api/questions/<int:question_id>/candidate-answers")
