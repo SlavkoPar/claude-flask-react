@@ -1,5 +1,6 @@
 import io
 import json
+import logging
 import os
 import ssl
 import urllib3
@@ -59,6 +60,9 @@ from database.db import (
     search_documents,
 )
 from pypdf import PdfReader
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -610,7 +614,9 @@ def questions_search():
     q = request.args.get("q") or ""
     if not q:
         return jsonify([])
-    return jsonify(search_questions(q))
+    results = search_questions(q)
+    logger.info("questions/search q=%r -> %d match(es)", q, len(results))
+    return jsonify(results)
 
 
 @app.route("/api/questions/from-filter", methods=["POST"])
@@ -627,7 +633,9 @@ def questions_create_from_filter():
         return jsonify({"error": "Text is required"}), 400
     question = create_question_from_filter(user_id, text)
     if not question:
+        logger.info("questions/from-filter text=%r -> no matching document content", text)
         return jsonify({"error": "Filter text was not found verbatim in any matched document"}), 404
+    logger.info("questions/from-filter text=%r -> question id=%s %r", text, question["id"], question["text"])
     return jsonify(question), 201
 
 
@@ -637,7 +645,9 @@ def questions_candidate_answers(question_id):
         return jsonify({"error": "Not authenticated"}), 401
     if not get_question(question_id):
         return jsonify({"error": "Question not found"}), 404
-    return jsonify(get_candidate_answers(question_id))
+    candidates = get_candidate_answers(question_id)
+    logger.info("questions/%s/candidate-answers -> %d candidate(s)", question_id, len(candidates))
+    return jsonify(candidates)
 
 
 @app.route("/api/questions/<int:question_id>/answers/<int:answer_id>/fixed", methods=["POST"])

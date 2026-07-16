@@ -141,6 +141,7 @@ first use.
 No new dependencies.
 
 ## Rules for implementation
+  - Add Logger to app.py, log to debug console, and logs to  end points: /api/questions/question_id/candidate-answers, /api/questions/from-filter, api/questions/search
   - In SideBar, use filter and search description or content of `pdf` documents, using vector search. Start search after at least 3 chars are entered. Use faiss index. Don't remove new lines to enable `paragraph` recognition.
 
 - Recognize `sentence` inside of document, where `filter` was found, by end point, new line or end of document. There can be multiple sentences.
@@ -149,15 +150,14 @@ No new dependencies.
   
   - else When some documents are found, recognize `paragraph` by empty line or end of doc. Treat the whole `paragraph` inside of which `sentence` was found, as the `answer`, also treat the next `paragraph` as the `answer`. There can be many paragraphs that `filter` satisfies. 
 
-  - If document(s) have been found,  order documents by `created_at` ascending
-    -- for each `sentence` recognized in document
-      --- find question by using exact search, using `sentence`
-         ----- if question is not found, create a new `question` with text equal to `sentence`
-         ----- else if document `created_at` is newer than correspoding `question.modified_at`
-           ------- add `answers` recognized to the `answers` table, avoid duplicate
-           ------- assign answers to the `question`
+    -- If document(s) have been found,  order documents by `created_at` ascending
+      --- for each `sentence` recognized in document
+        ---- find question, by using `sentence`, use exact search, 
+          ------ if question is not found, create a new `question` with text equal to `sentence`
+          ------ else if document `created_at` is newer than correspoding `question.modified_at`
+            -------- add `answers` recognized to the `answers` table, avoid duplicate
+            -------- assign answers to the `question`
 
-   -- 
    
 ## Definition of done
 - [x] Documents are searchable via FAISS vector search by question text

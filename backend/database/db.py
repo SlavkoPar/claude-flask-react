@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash
 
 from database import vector_store
 
-DB_PATH = "my.db"
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "my.db")
 IMPORT_DIR = os.path.join(os.path.dirname(__file__), "import")
 
 

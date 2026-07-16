@@ -14,7 +14,7 @@ logs
 *.sw?
 
 .venv/
-my.db
+/backend/my.db
 faiss_*.index
 __pycache__/
 *.pyc
