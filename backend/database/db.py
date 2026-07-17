@@ -1,10 +1,13 @@
 import json
+import logging
 import os
 import re
 import sqlite3
 from werkzeug.security import generate_password_hash
 
 from database import vector_store
+
+logger = logging.getLogger(__name__)
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "my.db")
 IMPORT_DIR = os.path.join(os.path.dirname(__file__), "import")
@@ -390,6 +393,7 @@ def create_group(user_id, name, parent_id, description):
         conn.commit()
     finally:
         conn.close()
+    logger.info("groups/create user_id=%s name=%r parent_id=%s -> id=%s", user_id, name, parent_id, group_id)
     return group_id
 
 
@@ -410,6 +414,7 @@ def update_group(group_id, name, parent_id, description):
         conn.commit()
     finally:
         conn.close()
+    logger.info("groups/update id=%s name=%r parent_id=%s", group_id, name, parent_id)
 
 
 def delete_group(group_id):
@@ -424,6 +429,7 @@ def delete_group(group_id):
         conn.commit()
     finally:
         conn.close()
+    logger.info("groups/delete id=%s", group_id)
 
 
 # ── Questions ─────────────────────────────────────────────────────────────────
@@ -481,6 +487,7 @@ def create_question(user_id, group_id, text, description):
     finally:
         conn.close()
     vector_store.add_embedding("questions", question_id, _question_embedding_text(text, description))
+    logger.info("questions/create user_id=%s group_id=%s text=%r -> id=%s", user_id, group_id, text, question_id)
     return question_id
 
 
@@ -560,6 +567,7 @@ def update_question(question_id, text, description):
     finally:
         conn.close()
     vector_store.add_embedding("questions", question_id, _question_embedding_text(text, description))
+    logger.info("questions/update id=%s text=%r", question_id, text)
 
 
 def delete_question(question_id):
@@ -575,6 +583,7 @@ def delete_question(question_id):
     conn.commit()
     conn.close()
     vector_store.remove_embedding("questions", question_id)
+    logger.info("questions/delete id=%s", question_id)
 
 
 # ── Answers ───────────────────────────────────────────────────────────────────
@@ -624,6 +633,7 @@ def create_answer(user_id, short_desc, description, link):
     finally:
         conn.close()
     vector_store.add_embedding("answers", answer_id, _answer_embedding_text(short_desc, description))
+    logger.info("answers/create user_id=%s short_desc=%r -> id=%s", user_id, short_desc, answer_id)
     return answer_id
 
 
@@ -638,6 +648,7 @@ def update_answer(answer_id, short_desc, description, link):
     finally:
         conn.close()
     vector_store.add_embedding("answers", answer_id, _answer_embedding_text(short_desc, description))
+    logger.info("answers/update id=%s short_desc=%r", answer_id, short_desc)
 
 
 def delete_answer(answer_id):
@@ -648,6 +659,7 @@ def delete_answer(answer_id):
     finally:
         conn.close()
     vector_store.remove_embedding("answers", answer_id)
+    logger.info("answers/delete id=%s", answer_id)
 
 
 # ── Documents ─────────────────────────────────────────────────────────────────
@@ -688,9 +700,10 @@ def search_documents(query, k=5):
 
     results = [dict(r) for r in rows]
     for r in results:
-        r["snippet"] = _document_snippet(r.pop("content"))
+        r["snippet"] = _document_snippet(_document_full_text(r.pop("content")))
         r["distance"] = distance_by_id[r["id"]]
     results.sort(key=lambda r: r["distance"])
+    logger.info("documents/search query=%r -> %d match(es)", query, len(results))
     return results
 
 
@@ -726,6 +739,7 @@ def _filter_paragraph_matches(content, filter_text):
         if needle in para.lower():
             pair = para if i + 1 >= len(paragraphs) else f"{para}\n{paragraphs[i + 1]}"
             matches.append(pair)
+    logger.info("documents/filter-paragraphs filter=%r -> %d match(es)", filter_text, len(matches))
     return matches
 
 
@@ -742,6 +756,7 @@ def _extract_sentence(text, filter_text):
     end_candidates = [e for e in (text.find(".", match_end), text.find("\n", match_end)) if e != -1]
     end = min(end_candidates) if end_candidates else len(text)
     sentence = text[start:end].strip()
+    logger.info("documents/extract-sentence filter=%r -> %r", filter_text, sentence)
     return sentence or None
 
 
@@ -761,6 +776,7 @@ def _documents_matching_filter(filter_text, k=5):
     conn.close()
     results = [dict(r) for r in rows]
     results.sort(key=lambda r: r["created_at"])
+    logger.info("documents/matching-filter filter=%r -> %d match(es)", filter_text, len(results))
     return results
 
 
@@ -869,6 +885,10 @@ def create_document(user_id, group_id, description, content, link, pdf_filename=
     conn.commit()
     conn.close()
     vector_store.add_embedding("documents", document_id, _document_embedding_text(description, content))
+    logger.info(
+        "documents/create user_id=%s group_id=%s description=%r -> id=%s",
+        user_id, group_id, description, document_id,
+    )
     return document_id
 
 
@@ -888,6 +908,7 @@ def update_document(document_id, group_id, description, content, link, pdf_filen
     conn.commit()
     conn.close()
     vector_store.add_embedding("documents", document_id, _document_embedding_text(description, content))
+    logger.info("documents/update id=%s description=%r", document_id, description)
 
 
 def delete_document(document_id):
@@ -896,6 +917,7 @@ def delete_document(document_id):
     conn.commit()
     conn.close()
     vector_store.remove_embedding("documents", document_id)
+    logger.info("documents/delete id=%s", document_id)
 
 
 # ── Question <-> Answer assignment ───────────────────────────────────────────
@@ -945,6 +967,7 @@ def assign_answer(user_id, question_id, answer_id):
     _recompute_num_of_assigned_answers(conn, question_id)
     conn.commit()
     conn.close()
+    logger.info("question_answers/assign question_id=%s answer_id=%s user_id=%s", question_id, answer_id, user_id)
 
 
 def unassign_answer(question_id, answer_id):
@@ -956,6 +979,7 @@ def unassign_answer(question_id, answer_id):
     _recompute_num_of_assigned_answers(conn, question_id)
     conn.commit()
     conn.close()
+    logger.info("question_answers/unassign question_id=%s answer_id=%s", question_id, answer_id)
 
 
 # ── Sidebar: question search, candidate answers, fixed/not-fixed ────────────
@@ -1054,6 +1078,7 @@ def mark_answer_fixed(user_id, question_id, answer_id):
     )
     conn.commit()
     conn.close()
+    logger.info("history/fixed question_id=%s answer_id=%s user_id=%s", question_id, answer_id, user_id)
 
 
 def mark_answer_not_fixed(user_id, question_id, answer_id):
@@ -1064,3 +1089,4 @@ def mark_answer_not_fixed(user_id, question_id, answer_id):
     )
     conn.commit()
     conn.close()
+    logger.info("history/not_fixed question_id=%s answer_id=%s user_id=%s", question_id, answer_id, user_id)

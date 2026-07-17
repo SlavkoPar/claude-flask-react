@@ -1,7 +1,22 @@
-import { useRef, useState } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import { Button } from 'react-bootstrap'
 import { SERVER_URL } from '../../config'
 import AsyncAutocomplete from '../common/AsyncAutocomplete'
+
+// Renders `\n`-separated text as <br>-separated lines, collapsing other
+// runs of whitespace (PDF extraction leaves stray spaces/tabs) to one space.
+function withLineBreaks(text) {
+  return text
+    .split(/\n+/)
+    .map(line => line.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .map((line, i) => (
+      <Fragment key={i}>
+        {i > 0 && <br />}
+        {line}
+      </Fragment>
+    ))
+}
 
 async function searchQuestions(q) {
   const params = new URLSearchParams({ q })
@@ -138,12 +153,11 @@ export default function SideBar({ open, onClose }) {
               Answer {index + 1} of {candidates.length}
             </div>
             <div className="answer-row-title mb-2">
-              {current.short_desc}
+              {current.description}
               {current.link && (
                 <a href={current.link} target="_blank" rel="noreferrer" className="answer-row-link">↗</a>
               )}
             </div>
-            {current.description && <div className="small mb-2">{current.description}</div>}
             <div className="d-flex gap-2">
               <Button variant="success" size="sm" onClick={handleFixed}>Fixed</Button>
               <Button variant="outline-danger" size="sm" onClick={handleNotFixed}>Not Fixed</Button>
@@ -159,7 +173,7 @@ export default function SideBar({ open, onClose }) {
                         <a href={doc.link} target="_blank" rel="noreferrer" className="answer-row-link"> ↗</a>
                       )}
                     </div>
-                    <div className="sidebar-related-document-snippet">{doc.snippet}</div>
+                    <div className="sidebar-related-document-snippet">{withLineBreaks(doc.snippet)}</div>
                   </div>
                 ))}
               </div>

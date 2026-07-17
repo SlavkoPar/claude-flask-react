@@ -141,7 +141,7 @@ first use.
 No new dependencies.
 
 ## Rules for implementation
-  - Add Logger to app.py, log to debug console, and logs to  end points: /api/questions/question_id/candidate-answers, /api/questions/from-filter, api/questions/search
+  - Add app.logger to app.py, log to debug console, add logs to  end points: /api/questions/question_id/candidate-answers, /api/questions/from-filter, api/questions/search
   - In SideBar, use filter and search description or content of `pdf` documents, using vector search. Start search after at least 3 chars are entered. Use faiss index. Don't remove new lines to enable `paragraph` recognition.
 
 - Recognize `sentence` inside of document, where `filter` was found, by end point, new line or end of document. There can be multiple sentences.
@@ -157,6 +157,8 @@ No new dependencies.
           ------ else if document `created_at` is newer than correspoding `question.modified_at`
             -------- add `answers` recognized to the `answers` table, avoid duplicate
             -------- assign answers to the `question`
+- In SideBar when showing `Related documents` replace `\n` and other whitespaces to corresponding html tags like `<br>`. Show 5 lines, and enable vertical scroll.
+- for answer card do not show current.short_desc, just description
 
    
 ## Definition of done

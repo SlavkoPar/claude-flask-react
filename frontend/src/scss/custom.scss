@@ -577,6 +577,8 @@
   border-top: 1px solid $cyan-200;
   margin-top: 0.75rem;
   padding-top: 0.5rem;
+  max-height: 6.5rem; // ~5 lines of .small text
+  overflow-y: auto;
 }
 
 .sidebar-related-document {
