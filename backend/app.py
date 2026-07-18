@@ -11,7 +11,7 @@ from anthropic import Anthropic
 from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
 from werkzeug.security import check_password_hash
-from . database.db import (
+from database.db import (
     get_db,
     init_db,
     seed_db,
