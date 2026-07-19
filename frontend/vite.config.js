@@ -10,6 +10,16 @@ export default defineConfig({
       '/auth': 'http://localhost:5000',
     },
   },
+  build: {
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name].js`,
+        chunkFileNames: `assets/[name].js`,
+        assetFileNames: `assets/[name].[ext]`
+      }
+    }
+  },
   css: {
     preprocessorOptions: {
       scss: {

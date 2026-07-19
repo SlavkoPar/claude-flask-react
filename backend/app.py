@@ -72,7 +72,11 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 
-app = Flask(__name__)
+app = Flask(
+    __name__, 
+    static_folder='frontend/dist', 
+    template_folder='frontend/dist'
+)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
