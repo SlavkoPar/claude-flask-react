@@ -1,5 +1,5 @@
 
 cd frontend
-npm install
-npm run build
+yarn
+yarn build
 cd ..
