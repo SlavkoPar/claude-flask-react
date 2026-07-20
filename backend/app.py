@@ -74,9 +74,9 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 
 app = Flask(
     __name__, 
-    static_folder='frontend/dist',
+    static_folder='/frontend/dist',
     static_url_path='/frontend/dist/',  
-    template_folder='frontend/dist'
+    template_folder='/frontend/dist'
 )
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
 app.config.update(
