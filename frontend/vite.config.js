@@ -8,6 +8,15 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     plugins: [react()],
+    css: {
+      preprocessorOptions: {
+        scss: {
+          // Suppresses the color-functions and legacy JS API warnings
+          quietDeps: true,
+          silenceDeprecations: ['color-functions', 'import', 'global-builtin'],
+        },
+      },
+    },
     server: {
       proxy: isProduction ? {
         '/api': 'https://knowledge-i4sn.onrender.com',
@@ -30,14 +39,6 @@ export default defineConfig(({ command, mode }) => {
       build: {
         // Set the output directory for the compiled assets
         outDir: 'dist',
-        css: {
-          preprocessorOptions: {
-            scss: {
-              quietDeps: true,
-              silenceDeprecations: ['color-functions', 'import', 'global-builtin'],
-            },
-          },
-        },
 
         // Specify target environment (modern browsers supporting ES Modules)
         target: 'esnext',
