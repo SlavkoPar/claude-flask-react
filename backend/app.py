@@ -74,9 +74,9 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 
 app = Flask(
     __name__, 
-    static_folder='https://claude-flask-react.onrender.com/dist',
-    static_url_path='https://claude-flask-react.onrender.com/dist/',  
-    template_folder='https://claude-flask-react.onrender.com/dist'
+    # static_folder='https://claude-flask-react.onrender.com/dist',
+    static_url_path='https://claude-flask-react.onrender.com/dist/', 
+    # template_folder='https://claude-flask-react.onrender.com/dist'
 )
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
 app.config.update(
