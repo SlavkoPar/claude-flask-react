@@ -66,7 +66,7 @@ export default defineConfig(({ command, mode }) => {
         open: true, // Auto-open browser
         proxy: {
           '/api': {
-            target: env.VITE_API_DEV_URL || 'http://localhost:5000',
+            target: env.VITE_API_PRODUCTION_URL || 'http://localhost:5000',
             changeOrigin: true,
             rewrite: (path) => path.replace(/^\/api/, ''),
           },
