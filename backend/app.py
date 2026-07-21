@@ -72,12 +72,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 
-app = Flask(
-    __name__, 
-    # static_folder='https://claude-flask-react.onrender.com/dist',
-    static_url_path='https://claude-flask-react.onrender.com/dist/', 
-    # template_folder='https://claude-flask-react.onrender.com/dist'
-)
+app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
