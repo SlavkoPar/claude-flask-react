@@ -37,8 +37,8 @@ export default defineConfig(({ command, mode }) => {
       },
 
       build: {
-        assetsInlineLimit: 0, // Keep files separate instead of converting to base64 strings
-        
+        assetsInlineLimit: 8192,
+
         // Set the output directory for the compiled assets
         outDir: 'dist',
 
