@@ -74,9 +74,9 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 
 app = Flask(
     __name__, 
-    static_folder='/frontend/dist',
-    static_url_path='/frontend/dist/',  
-    template_folder='/frontend/dist'
+    static_folder='https://claude-flask-react-1.onrender.com/dist',
+    static_url_path='https://claude-flask-react-1.onrender.com/dist/',  
+    template_folder='https://claude-flask-react-1.onrender.com/dist'
 )
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
 app.config.update(
@@ -86,8 +86,8 @@ app.config.update(
 
 CORS(app, supports_credentials=True, origins=[FRONTEND_URL])
 
-client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-MODEL = os.environ.get("MODEL", "claude-sonnet-4-6")
+# client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+# MODEL = os.environ.get("MODEL", "claude-sonnet-4-6")
 
 oauth = OAuth(app)
 google = oauth.register(
@@ -683,43 +683,43 @@ def questions_answer_not_fixed(question_id, answer_id):
 
 # ── Chat ──────────────────────────────────────────────────────────────────────
 
-@app.route("/api/chat", methods=["POST"])
-def chat():
-    data = request.get_json(force=True) or {}
-    messages = data.get("messages", [])
-    if not messages:
-        return jsonify({"error": "messages is required"}), 400
-    try:
-        response = client.messages.create(
-            model=MODEL,
-            max_tokens=1024,
-            messages=messages,
-        )
-        text = "".join(
-            block.text for block in response.content if block.type == "text"
-        )
-        return jsonify({"reply": text})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+# @app.route("/api/chat", methods=["POST"])
+# def chat():
+#     data = request.get_json(force=True) or {}
+#     messages = data.get("messages", [])
+#     if not messages:
+#         return jsonify({"error": "messages is required"}), 400
+#     try:
+#         response = client.messages.create(
+#             model=MODEL,
+#             max_tokens=1024,
+#             messages=messages,
+#         )
+#         text = "".join(
+#             block.text for block in response.content if block.type == "text"
+#         )
+#         return jsonify({"reply": text})
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/chat/stream", methods=["POST"])
-def chat_stream():
-    data = request.get_json(force=True) or {}
-    messages = data.get("messages", [])
-    if not messages:
-        return jsonify({"error": "messages is required"}), 400
+# @app.route("/api/chat/stream", methods=["POST"])
+# def chat_stream():
+#     data = request.get_json(force=True) or {}
+#     messages = data.get("messages", [])
+#     if not messages:
+#         return jsonify({"error": "messages is required"}), 400
 
-    def generate():
-        with client.messages.stream(
-            model=MODEL,
-            max_tokens=1024,
-            messages=messages,
-        ) as stream:
-            for text in stream.text_stream:
-                yield text
+#     def generate():
+#         with client.messages.stream(
+#             model=MODEL,
+#             max_tokens=1024,
+#             messages=messages,
+#         ) as stream:
+#             for text in stream.text_stream:
+#                 yield text
 
-    return Response(stream_with_context(generate()), mimetype="text/plain")
+#     return Response(stream_with_context(generate()), mimetype="text/plain")
 
 
 if __name__ == "__main__":
