@@ -36,7 +36,7 @@ export default defineConfig(({ command, mode }) => {
         },
 
       // Public base path for production assets
-      base: isProduction ? 'https://claude-flask-react.onrender.com' : '/',
+      base: isProduction ? 'https://knowledge-0fyn.onrender.com/' : '/',
 
       resolve: {
         alias: {
