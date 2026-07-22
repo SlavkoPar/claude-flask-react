@@ -76,7 +76,9 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SAMESITE=None,
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SECURE = True if os.environ.get("FLASK_ENV") == "production" else False,
 )
 
 # CORS(app, supports_credentials=True, origins=[FRONTEND_URL])
