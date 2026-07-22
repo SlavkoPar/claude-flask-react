@@ -75,7 +75,6 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
 app.config.update(
-    SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_HTTPONLY = "True",
     SESSION_COOKIE_SECURE = "True" if os.environ.get("FLASK_ENV") == "production" else "False"
