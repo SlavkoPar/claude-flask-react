@@ -109,7 +109,7 @@
   align-items: center;
   justify-content: flex-start;
   gap: 0.5rem;
-  padding: 0.1rem 8px;
+  padding: 0.05rem 4px;
 
   > :last-child {
     margin-left: auto;
@@ -215,8 +215,7 @@
   @extend .knowledge-row; // Inherit all properties from .knowledge-row
   background-color: $teal-200;
   color: #fff;
-  padding-top: 1px;
-  padding-bottom: 1px;
+  padding: 0.05rem 4px;
 
   .selected {
     background-color: $teal-400;
@@ -327,7 +326,7 @@
   align-items: center;
   justify-content: flex-start;
   gap: 0.5rem;
-  padding: 0.1rem 8px;
+  padding: 0.05rem 4px;
 
   > :last-child {
     margin-left: auto;
@@ -427,7 +426,7 @@
   align-items: center;
   justify-content: flex-start;
   gap: 0.5rem;
-  padding: 0.1rem 8px;
+  padding: 0.05rem 4px;
 
   > :last-child {
     margin-left: auto;
@@ -448,6 +447,13 @@
 .document-row-link {
   font-size: 0.85em;
   text-decoration: none;
+}
+
+.answer-row .btn,
+.document-row .btn,
+.group-row .btn,
+.question-row .btn {
+  padding: 0.05rem 4px;
 }
 
 .document-spinner {

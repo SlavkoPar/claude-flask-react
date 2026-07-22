@@ -502,7 +502,8 @@ def get_or_create_uncategorized_group(user_id):
             return g["id"]
     return create_group(
         user_id, UNCATEGORIZED_GROUP_NAME, None,
-        "Questions auto-saved from sidebar filters that matched a document",
+        "Questions auto-saved from sidebar",
+        
     )
 
 
