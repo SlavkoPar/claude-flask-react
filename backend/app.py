@@ -74,10 +74,15 @@ FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
+# In production, frontend and backend live on different *.onrender.com subdomains —
+# each counts as its own "site", so the session cookie needs SameSite=None to be sent
+# on cross-site fetches. SameSite=None requires Secure, which in turn requires HTTPS,
+# so both must flip together with FLASK_ENV (Secure cookies are dropped over local http).
+IS_PRODUCTION = os.environ.get("FLASK_ENV") == "production"
 app.config.update(
-    SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_HTTPONLY = True,
-    SESSION_COOKIE_SECURE = True if os.environ.get("FLASK_ENV") == "production" else False
+    SESSION_COOKIE_SAMESITE="None" if IS_PRODUCTION else "Lax",
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=IS_PRODUCTION,
 )
 
 # CORS(app, supports_credentials=True, origins=[FRONTEND_URL])
