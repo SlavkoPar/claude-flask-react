@@ -79,7 +79,10 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
 )
 
-CORS(app, supports_credentials=True, origins=[FRONTEND_URL])
+# CORS(app, supports_credentials=True, origins=[FRONTEND_URL])
+# This explicitly allows your React application domain
+CORS(app, resources={r"/api/*": {"origins": FRONTEND_URL}}, supports_credentials=True)
+
 
 # client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 # MODEL = os.environ.get("MODEL", "claude-sonnet-4-6")
