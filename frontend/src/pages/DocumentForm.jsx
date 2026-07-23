@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Container, Form, Button, Alert } from 'react-bootstrap'
 import { SERVER_URL } from '../config'
+import { extractDisplayText, withLineBreaks } from '../utils/textFormat'
 
 async function extractPdf(file) {
   const formData = new FormData()
@@ -41,7 +42,7 @@ export default function DocumentForm() {
     setError(null)
     try {
       const content = await extractPdf(file)
-      setValues(v => ({ ...v, content }))
+      setValues(v => ({ ...v, content: extractDisplayText(content) }))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -118,13 +119,9 @@ export default function DocumentForm() {
         </Form.Group>
         <Form.Group className="mb-3">
           <Form.Label>Content</Form.Label>
-          <Form.Control
-            as="textarea"
-            rows={3}
-            className="form-input document-content-textarea"
-            value={values.content}
-            onChange={e => setValues(v => ({ ...v, content: e.target.value }))}
-          />
+          <div className="form-input document-content-display">
+            {withLineBreaks(values.content)}
+          </div>
         </Form.Group>
         <Form.Group className="mb-3">
           <Form.Label>Link</Form.Label>

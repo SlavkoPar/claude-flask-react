@@ -1,5 +1,6 @@
 import { Button } from 'react-bootstrap'
 import docIcon from '../../assets/Doc.svg'
+import { SERVER_URL } from '../../config'
 
 export default function Row({ document, isOwner, onEdit, onDelete }) {
   return (
@@ -10,6 +11,16 @@ export default function Row({ document, isOwner, onEdit, onDelete }) {
       </button>
       {document.link && (
         <a href={document.link} target="_blank" rel="noreferrer" className="document-row-link">↗</a>
+      )}
+      {document.has_pdf && (
+        <a
+          href={`${SERVER_URL}/api/documents/${document.id}/pdf`}
+          target="_blank"
+          rel="noreferrer"
+          className="document-row-link"
+        >
+          Download original PDF
+        </a>
       )}
       {isOwner && (
         <Button type="button" variant="outline-danger" size="sm" aria-label="Delete document" onClick={() => onDelete(document.id)}>✕</Button>

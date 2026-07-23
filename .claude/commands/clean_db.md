@@ -1,5 +1,5 @@
 ---
-description: Empty history, question_answers, documents, questions, groups and answers, then (re-)import groups from groups.json and Remote_Controller.pdf as a document
+description: Empty history, question_answers, documents, questions, groups and answers, then (re-)import groups from groups.json and every PDF in database/import/ as a document
 allowed-tools: Read, Bash(python3:*)
 ---
 
@@ -33,18 +33,18 @@ Then write and run a Python script using Bash that:
    - database/faiss_questions.index
    - database/faiss_answers.index
    - database/faiss_documents.index
-4. Imports `database/import/Remote_Controller.pdf` as a document via
+4. Imports every `database/import/*.pdf` file as a document via
    `create_document()` (which also embeds it into the FAISS `documents`
    index) — extract its text with `pypdf.PdfReader` the same way
-   `/api/documents/extract-pdf` does, and use:
+   `/api/documents/extract-pdf` does, and for each PDF use:
    - user_id: the demo user (id 1)
-   - group_id: look up the group by name at run time (don't hardcode the
-     id) — the source is whatever `database/import/groups.json`'s leaf
-     "remote controllers" group is currently named (it's been renamed
-     before, e.g. to "Rem ctrls"); match case-insensitively on the group
-     whose name contains "remote" or "ctrl" rather than an exact string
-   - description: "Remote Controller"
-   - content: `{"filename": "Remote_Controller.pdf", "pages": [...]}` (same
+   - group_id: best-effort match — file it under the group whose name
+     shares a keyword (3+ chars) with the PDF's filename, case-insensitively
+     (e.g. "Remote Controller.pdf" matches a group renamed to "Rem ctrls");
+     if no group matches, fall back to `get_or_create_uncategorized_group`
+   - description: the filename without its extension, underscores turned
+     into spaces (e.g. "Remote Controller.pdf" -> "Remote Controller")
+   - content: `{"filename": "<original filename>", "pages": [...]}` (same
      shape the extract-pdf endpoint produces)
    - pdf_filename/pdf_data: the original file's name and raw bytes, so
      "Download original PDF" works on the created document too

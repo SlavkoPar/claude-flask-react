@@ -1,22 +1,8 @@
-import { Fragment, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button } from 'react-bootstrap'
 import { SERVER_URL } from '../../config'
 import AsyncAutocomplete from '../common/AsyncAutocomplete'
-
-// Renders `\n`-separated text as <br>-separated lines, collapsing other
-// runs of whitespace (PDF extraction leaves stray spaces/tabs) to one space.
-function withLineBreaks(text) {
-  return text
-    .split(/\n+/)
-    .map(line => line.replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
-    .map((line, i) => (
-      <Fragment key={i}>
-        {i > 0 && <br />}
-        {line}
-      </Fragment>
-    ))
-}
+import { withLineBreaks } from '../../utils/textFormat'
 
 async function searchQuestions(q) {
   const params = new URLSearchParams({ q })

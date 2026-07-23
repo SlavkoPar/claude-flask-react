@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Modal, Form, Button, Alert, Spinner } from 'react-bootstrap'
 import { SERVER_URL } from '../../config'
+import { extractDisplayText, withLineBreaks } from '../../utils/textFormat'
 
 async function fetchDocument(id) {
   const res = await fetch(`${SERVER_URL}/api/documents/${id}`, { credentials: 'include' })
@@ -69,7 +70,7 @@ export default function DocumentModal({ document, readOnly = false, onSaved, onC
       .then(full => {
         const next = {
           description: full.description || '',
-          content: full.content || '',
+          content: extractDisplayText(full.content || ''),
           link: full.link || '',
           group_id: full.group_id != null ? String(full.group_id) : '',
         }
@@ -106,7 +107,7 @@ export default function DocumentModal({ document, readOnly = false, onSaved, onC
     setError(null)
     try {
       const content = await extractPdf(file)
-      setValues(v => ({ ...v, content }))
+      setValues(v => ({ ...v, content: extractDisplayText(content) }))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -173,14 +174,9 @@ export default function DocumentModal({ document, readOnly = false, onSaved, onC
               )}
               <Form.Group className="mb-3">
                 <Form.Label>Content</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  className="form-input document-content-textarea"
-                  value={values.content}
-                  onChange={e => setValues(v => ({ ...v, content: e.target.value }))}
-                  readOnly={readOnly}
-                />
+                <div className="form-input document-content-display">
+                  {withLineBreaks(values.content)}
+                </div>
               </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>Link</Form.Label>

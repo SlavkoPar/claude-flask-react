@@ -102,6 +102,8 @@ No new dependencies.
 - put icon `Doc` as the first column of the document row, justify content left
 - for rows of document, replace `Delete` with `X` icon and keep to the right
 - make document content 3 rows height, with enabled vertical scroll
+- make `Content` field readonly and put border rounded
+- also put `Download original PDF` in document row
 
 ## Definition of done
 - [x] Visiting `/documents` without being logged in redirects to `/login`

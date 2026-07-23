@@ -14,7 +14,6 @@
          },
          "args": [
             "run",
-            "--no-debugger",
             "--no-reload"
          ],
          "jinja": false,

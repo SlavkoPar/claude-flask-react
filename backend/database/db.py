@@ -834,7 +834,10 @@ def backfill_document_groups():
 
 def get_documents(name=None, group_id=None):
     conn = get_db()
-    columns = "d.id, d.user_id, d.group_id, g.name AS group_name, d.description, d.link, d.created_at"
+    columns = (
+        "d.id, d.user_id, d.group_id, g.name AS group_name, d.description, d.link, d.created_at, "
+        "(d.pdf_data IS NOT NULL) AS has_pdf"
+    )
     sql = f"SELECT {columns} FROM documents d LEFT JOIN groups g ON g.id = d.group_id WHERE 1=1"
     params = []
     if name:
@@ -846,7 +849,10 @@ def get_documents(name=None, group_id=None):
     sql += " ORDER BY g.name, d.description"
     rows = conn.execute(sql, params).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    results = [dict(r) for r in rows]
+    for r in results:
+        r["has_pdf"] = bool(r["has_pdf"])
+    return results
 
 
 def get_document(document_id):
