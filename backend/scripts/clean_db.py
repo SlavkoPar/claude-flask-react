@@ -40,6 +40,9 @@ def _find_group_id(groups, filename):
 
 
 def main():
+    """Wipes and reseeds the database. Returns
+    {"before": {...}, "after": {...}, "deleted_faiss_files": [...], "created_documents": [...]}
+    so callers (CLI or an HTTP endpoint) can report what happened."""
     init_db()  # apply any pending column migrations (e.g. documents.group_id) before wiping
 
     conn = get_db()
@@ -57,15 +60,17 @@ def main():
 
     seed_groups()
 
+    deleted_faiss_files = []
     for path in FAISS_FILES:
         path = os.path.normpath(path)
         if os.path.exists(path):
             os.remove(path)
-            print(f"Deleted {path}")
+            deleted_faiss_files.append(path)
 
     with open(os.path.join(IMPORT_DIR, "groups.json"), encoding="utf-8") as f:
         groups = json.load(f)
 
+    created_documents = []
     pdf_filenames = sorted(f for f in os.listdir(IMPORT_DIR) if f.lower().endswith(".pdf"))
     for filename in pdf_filenames:
         pdf_path = os.path.join(IMPORT_DIR, filename)
@@ -93,16 +98,28 @@ def main():
             pdf_filename=filename,
             pdf_data=pdf_data,
         )
-        print(f"Created document id={document_id} ({filename!r}) in group '{group_name}' (id={group_id})")
+        created_documents.append({
+            "id": document_id, "filename": filename, "group_id": group_id, "group_name": group_name,
+        })
 
     conn = get_db()
     after = counts(conn)
     conn.close()
 
-    print(f"\n{'table':<20}{'before':>10}{'after':>10}")
-    for t in TABLES:
-        print(f"{t:<20}{before[t]:>10}{after[t]:>10}")
+    return {
+        "before": before,
+        "after": after,
+        "deleted_faiss_files": deleted_faiss_files,
+        "created_documents": created_documents,
+    }
 
 
 if __name__ == "__main__":
-    main()
+    result = main()
+    for path in result["deleted_faiss_files"]:
+        print(f"Deleted {path}")
+    for doc in result["created_documents"]:
+        print(f"Created document id={doc['id']} ({doc['filename']!r}) in group '{doc['group_name']}' (id={doc['group_id']})")
+    print(f"\n{'table':<20}{'before':>10}{'after':>10}")
+    for t in TABLES:
+        print(f"{t:<20}{result['before'][t]:>10}{result['after'][t]:>10}")

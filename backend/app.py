@@ -60,6 +60,7 @@ from database.db import (
     search_documents,
 )
 from pypdf import PdfReader
+from scripts.clean_db import main as clean_db_main
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -683,6 +684,23 @@ def questions_answer_not_fixed(question_id, answer_id):
         return jsonify({"error": "Answer not found"}), 404
     mark_answer_not_fixed(user_id, question_id, answer_id)
     return jsonify({"ok": True})
+
+
+# ── Admin ─────────────────────────────────────────────────────────────────────
+
+@app.route("/api/admin/clean-db", methods=["POST"])
+def admin_clean_db():
+    # Wipes history/questions/answers/documents/groups for every user (not just
+    # the caller's own data) and re-seeds demo content, so it's dev-only.
+    if IS_PRODUCTION:
+        return jsonify({"error": "Not available in production"}), 403
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    result = clean_db_main()
+    logger.info(
+        "admin/clean-db user_id=%s created=%d documents", _current_user_id(), len(result["created_documents"])
+    )
+    return jsonify(result)
 
 
 # ── Chat ──────────────────────────────────────────────────────────────────────
