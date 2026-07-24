@@ -20,5 +20,6 @@ __pycache__/
 *.pyc
 *.pyo
 .env
+.env.production
 .DS_Store
 .claude/plans/

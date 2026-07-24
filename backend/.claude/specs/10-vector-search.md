@@ -154,7 +154,7 @@ No new dependencies.
       --- for each `sentence` recognized in document
         ---- find question, by using `sentence`, use exact search, 
           ------ if question is not found, create a new `question` with text equal to `sentence`
-          ------ else if document `created_at` is newer than correspoding `question.modified_at`
+          ------ else if document `created_at` is newer than corresponding `question.modified_at`
             -------- add `answers` recognized to the `answers` table, avoid duplicate
             -------- assign answers to the `question`
 - In SideBar when showing `Related documents` replace `\n` and other whitespaces to corresponding html tags like `<br>`. Show 5 lines, and enable vertical scroll.

@@ -95,6 +95,8 @@ CORS(app, resources={r"/api/*": {"origins": FRONTEND_URL}}, supports_credentials
 # MODEL = os.environ.get("MODEL", "claude-sonnet-4-6")
 
 oauth = OAuth(app)
+logger.info("GOOGLE_CLIENT_ID=%s", os.environ.get("GOOGLE_CLIENT_ID"))
+logger.info("GOOGLE_CLIENT_SECRET=%s", os.environ.get("GOOGLE_CLIENT_SECRET"))
 google = oauth.register(
     name="google",
     client_id=os.environ.get("GOOGLE_CLIENT_ID"),
