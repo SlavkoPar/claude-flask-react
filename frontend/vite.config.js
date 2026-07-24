@@ -27,7 +27,7 @@ export default defineConfig(({ command, mode }) => {
         '/auth': {
           target: 'https://knowledge-i4sn.onrender.com', // Your Flask backend url
           changeOrigin: true,
-          secure: false,
+          secure: true,
         }
       } :
         {
