@@ -88,7 +88,7 @@ app.config.update(
 
 # CORS(app, supports_credentials=True, origins=[FRONTEND_URL])
 # This explicitly allows your React application domain
-CORS(app, resources={r"/api/*": {"origins": FRONTEND_URL}}, supports_credentials=True)
+CORS(app, resources={r"/api/*": {"origins": FRONTEND_URL}, r"/auth/*": {"origins": FRONTEND_URL}}, supports_credentials=True)
 
 
 # client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))

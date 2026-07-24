@@ -132,7 +132,6 @@ function App() {
       <NavBar onToggleSidebar={() => setSidebarOpen(o => !o)} />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/auth/google/callback" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/groups" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
         <Route path="/groups/add" element={<ProtectedRoute><Group /></ProtectedRoute>} />
