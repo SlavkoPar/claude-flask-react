@@ -72,6 +72,7 @@ ssl._create_default_https_context = ssl._create_unverified_context
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+VITE_SERVER_URL = os.environ.get("VITE_SERVER_URL", "http://localhost:5000")
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
@@ -105,7 +106,9 @@ google = oauth.register(
     client_kwargs={"scope": "openid email profile"},
 )
 
-GOOGLE_REDIRECT_URI = f"{FRONTEND_URL}/auth/google/callback"
+# GOOGLE_REDIRECT_URI = f"{FRONTEND_URL}/auth/google/callback"
+GOOGLE_REDIRECT_URI = f"{VITE_SERVER_URL}/auth/google/callback"
+
 
 with app.app_context():
     init_db()
