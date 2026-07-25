@@ -18,9 +18,6 @@ export default defineConfig(({ command, mode }) => {
       },
     },
     server: {
-      // The OAuth redirect from Google lands on this exact frontend path
-      // (GoogleCallback.jsx) — it must be served the SPA shell, not proxied
-      // to the backend like the rest of /auth/* (which are real API calls).
       proxy: isProduction ? {
         '/api': {
           target: 'https://knowledge-i4sn.onrender.com', // Your Flask backend url
@@ -31,19 +28,11 @@ export default defineConfig(({ command, mode }) => {
           target: 'https://knowledge-i4sn.onrender.com', // Your Flask backend url
           changeOrigin: true,
           secure: true,
-          bypass(req) {
-            if (req.url.startsWith('/auth/google/callback')) return req.url
-          },
         }
       } :
         {
           '/api': 'http://localhost:5000',
-          '/auth': {
-            target: 'http://localhost:5000',
-            bypass(req) {
-              if (req.url.startsWith('/auth/google/callback')) return req.url
-            },
-          },
+          '/auth': 'http://localhost:5000',
         },
 
       // Public base path for production assets

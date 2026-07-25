@@ -5,7 +5,7 @@ import os
 import ssl
 import urllib3
 import sqlite3
-from flask import Flask, request, jsonify, Response, stream_with_context, session, send_file
+from flask import Flask, request, jsonify, Response, stream_with_context, session, redirect, send_file
 from flask_cors import CORS
 from anthropic import Anthropic
 from dotenv import load_dotenv
@@ -89,7 +89,7 @@ app.config.update(
 
 # CORS(app, supports_credentials=True, origins=[FRONTEND_URL])
 # This explicitly allows your React application domain
-CORS(app, resources={r"/api/*": {"origins": FRONTEND_URL}, r"/auth/*": {"origins": FRONTEND_URL}}, supports_credentials=True)
+CORS(app, resources={r"/api/*": {"origins": FRONTEND_URL}}, supports_credentials=True)
 
 
 # client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
@@ -133,9 +133,6 @@ def google_login():
 
 @app.route("/auth/google/callback")
 def google_callback():
-    # Google redirects the browser to the frontend's own /auth/google/callback
-    # (GOOGLE_REDIRECT_URI above), which calls this endpoint cross-origin via
-    # fetch to finish the exchange — so this returns JSON, not a redirect.
     token = google.authorize_access_token()
     user_info = token.get("userinfo")
     user = get_or_create_google_user(
@@ -144,7 +141,7 @@ def google_callback():
         google_id=user_info["sub"],
     )
     session["user_id"] = user["id"]
-    return jsonify({"user": {"id": user["id"], "name": user["name"], "email": user["email"]}})
+    return redirect(FRONTEND_URL)
 
 
 # ── Auth API ──────────────────────────────────────────────────────────────────
