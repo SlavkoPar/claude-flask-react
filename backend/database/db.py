@@ -5,6 +5,7 @@ import re
 import sqlite3
 from werkzeug.security import generate_password_hash
 
+from database import claude_client
 from database import vector_store
 
 logger = logging.getLogger(__name__)
@@ -516,28 +517,61 @@ def find_question_by_text(text):
 
 def create_question_from_filter(user_id, text):
     """Called once a sidebar filter matches no question but does match a
-    document: scans every document that vector-matches the filter (oldest
-    first) for paragraphs containing it verbatim, stores them as answers
-    (deduped). If the filter only appears in the document's description (not
-    its content), the whole content is used as the answer instead. Per
-    document, the `sentence` surrounding the filter match is used to
-    find-or-create a question by exact text — a brand-new question gets the
-    extracted answers assigned immediately, an existing one only when the
-    document is newer than its modified_at. Returns the last document's
-    question (or None if the filter wasn't found verbatim in any matched
-    document's content or description)."""
+    document: for every document that vector-matches the filter (oldest
+    first), asks Claude to judge relevance and extract a question/answer pair
+    in a single batched call (claude_client.extract_filter_matches). Falls
+    back to the regex-based paragraph/sentence extraction
+    (_filter_paragraph_matches / _extract_sentence, plus the
+    description-only special case) if the Claude call fails for any reason.
+    Per document, the extracted `sentence` is used to find-or-create a
+    question by exact text — a brand-new question gets the extracted
+    answer(s) assigned immediately, an existing one only when the document is
+    newer than its modified_at. Returns the last document's question (or
+    None if no matched document yielded a usable sentence)."""
+    documents = _documents_matching_filter(text)
+    if not documents:
+        return None
+
+    extractions_by_id = {}
+    try:
+        extractions = claude_client.extract_filter_matches(
+            text,
+            [
+                {
+                    "id": d["id"],
+                    "description": d["description"],
+                    "text": _document_full_text(d["content"]),
+                }
+                for d in documents
+            ],
+        )
+        extractions_by_id = {e.document_id: e for e in extractions}
+    except claude_client.ExtractionError as e:
+        logger.warning("questions/from-filter claude extraction failed, falling back to regex: %s", e)
+
     question = None
-    for document in _documents_matching_filter(text):
-        content_text = _document_full_text(document["content"])
-        paragraphs = _filter_paragraph_matches(document["content"], text)
-        sentence = _extract_sentence(content_text, text)
-        if not paragraphs and text.lower() in (document["description"] or "").lower():
-            paragraphs = [content_text]
-            sentence = _extract_sentence(document["description"], text)
+    for document in documents:
+        extraction = extractions_by_id.get(document["id"])
+        short_desc = None
+        if extraction is not None:
+            if not extraction.relevant:
+                continue
+            sentence = extraction.question_text
+            paragraphs = [extraction.answer_detail] if extraction.answer_detail else []
+            short_desc = extraction.answer_short
+        else:
+            content_text = _document_full_text(document["content"])
+            paragraphs = _filter_paragraph_matches(document["content"], text)
+            sentence = _extract_sentence(content_text, text)
+            if not paragraphs and text.lower() in (document["description"] or "").lower():
+                paragraphs = [content_text]
+                sentence = _extract_sentence(document["description"], text)
         if not paragraphs or not sentence:
             continue
 
-        answer_ids = [_get_or_create_answer_from_paragraph(user_id, p) for p in paragraphs]
+        answer_ids = [
+            _get_or_create_answer_from_paragraph(user_id, p, short_desc=short_desc) for p in paragraphs
+        ]
 
         found = find_question_by_text(sentence)
         if not found:
@@ -795,11 +829,12 @@ def _find_answer_by_short_desc(short_desc):
     return row["id"] if row else None
 
 
-def _get_or_create_answer_from_paragraph(user_id, paragraph):
+def _get_or_create_answer_from_paragraph(user_id, paragraph, short_desc=None):
     existing_id = _find_answer_by_description(paragraph)
     if existing_id:
         return existing_id
-    short_desc = paragraph if len(paragraph) <= 80 else paragraph[:77] + "…"
+    if not short_desc:
+        short_desc = paragraph if len(paragraph) <= 80 else paragraph[:77] + "…"
     try:
         return create_answer(user_id, short_desc, paragraph, None)
     except sqlite3.IntegrityError:

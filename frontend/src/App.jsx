@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import NavBar from './components/NavBar'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
+import GoogleCallback from './pages/GoogleCallback'
 import Groups from './pages/Groups'
 import Group from './components/group/Group'
 import Answers from './pages/Answers'
@@ -133,6 +134,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/auth/google/callback" element={<GoogleCallback />} />
         <Route path="/groups" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
         <Route path="/groups/add" element={<ProtectedRoute><Group /></ProtectedRoute>} />
         <Route path="/groups/:id/edit" element={<ProtectedRoute><Group /></ProtectedRoute>} />

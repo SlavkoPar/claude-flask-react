@@ -1,6 +1,7 @@
 flask
 flask-cors
 anthropic
+pydantic
 python-dotenv
 werkzeug
 authlib
