@@ -493,6 +493,19 @@ def _read_pdf_upload():
     return file.filename, file.read()
 
 
+def _upload_pdf_for_claude(pdf_filename, pdf_data):
+    """Best-effort Anthropic Files API upload for a freshly-uploaded PDF —
+    returns the file_id, or None if there's no PDF or the upload fails (an
+    Anthropic outage shouldn't block creating/editing a document)."""
+    if not pdf_data:
+        return None
+    try:
+        return claude_client.upload_pdf(pdf_filename, pdf_data)
+    except Exception as e:
+        logger.warning("documents: Anthropic upload failed for %r, continuing without it: %s", pdf_filename, e)
+        return None
+
+
 @app.route("/api/documents", methods=["POST"])
 def documents_create():
     user_id = _current_user_id()
@@ -502,9 +515,10 @@ def documents_create():
     if error:
         return jsonify({"error": error, "values": values}), 400
     pdf_filename, pdf_data = _read_pdf_upload()
+    claude_file_id = _upload_pdf_for_claude(pdf_filename, pdf_data)
     document_id = create_document(
         user_id, values["group_id"], values["description"], values["content"], values["link"],
-        pdf_filename, pdf_data,
+        pdf_filename, pdf_data, claude_file_id,
     )
     return jsonify(get_document(document_id)), 201
 
@@ -523,9 +537,10 @@ def documents_update(document_id):
     if error:
         return jsonify({"error": error, "values": values}), 400
     pdf_filename, pdf_data = _read_pdf_upload()
+    claude_file_id = _upload_pdf_for_claude(pdf_filename, pdf_data)
     update_document(
         document_id, values["group_id"], values["description"], values["content"], values["link"],
-        pdf_filename, pdf_data,
+        pdf_filename, pdf_data, claude_file_id,
     )
     return jsonify(get_document(document_id))
 
