@@ -61,6 +61,7 @@ from database.db import (
 )
 from pypdf import PdfReader
 from scripts.clean_db import main as clean_db_main
+from database import claude_client
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -710,24 +711,31 @@ def admin_clean_db():
 
 # ── Chat ──────────────────────────────────────────────────────────────────────
 
-# @app.route("/api/chat", methods=["POST"])
-# def chat():
-#     data = request.get_json(force=True) or {}
-#     messages = data.get("messages", [])
-#     if not messages:
-#         return jsonify({"error": "messages is required"}), 400
-#     try:
-#         response = client.messages.create(
-#             model=MODEL,
-#             max_tokens=1024,
-#             messages=messages,
-#         )
-#         text = "".join(
-#             block.text for block in response.content if block.type == "text"
-#         )
-#         return jsonify({"reply": text})
-#     except Exception as e:
-#         return jsonify({"error": str(e)}), 500
+@app.route("/api/chat", methods=["POST"])
+def chat():
+    if not _current_user_id():
+        return jsonify({"error": "Not authenticated"}), 401
+    data = request.get_json(force=True) or {}
+    messages = data.get("messages", [])
+    if not messages:
+        return jsonify({"error": "messages is required"}), 400
+
+    # Optional: attach one document's original PDF as native context via the
+    # Anthropic Files API, so Claude answers from the actual file (layout,
+    # tables, images) rather than its plain-text extraction.
+    file_ids = []
+    document_id = data.get("document_id")
+    if document_id is not None:
+        pdf = get_document_pdf(document_id)
+        if pdf:
+            file_ids.append(claude_client.upload_pdf(pdf["pdf_filename"], pdf["pdf_data"]))
+
+    try:
+        reply = claude_client.chat_reply(messages, file_ids)
+        return jsonify({"reply": reply})
+    except Exception as e:
+        logger.warning("chat failed: %s", e)
+        return jsonify({"error": str(e)}), 500
 
 
 # @app.route("/api/chat/stream", methods=["POST"])

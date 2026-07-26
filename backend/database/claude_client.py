@@ -100,3 +100,41 @@ def extract_filter_matches(filter_text: str, documents: list[dict]) -> list[Docu
         response.usage.input_tokens, response.usage.output_tokens,
     )
     return response.parsed_output.extractions
+
+
+FILES_API_BETA = "files-api-2025-04-14"
+
+
+def upload_pdf(filename: str, data: bytes) -> str:
+    """Uploads a PDF via the Anthropic Files API. Returns the file_id, which
+    can be referenced as a `document` content block in later messages instead
+    of re-sending the raw bytes."""
+    uploaded = _get_client().beta.files.upload(
+        file=(filename, data, "application/pdf"),
+        betas=[FILES_API_BETA],
+    )
+    return uploaded.id
+
+
+def chat_reply(messages: list[dict], file_ids: Optional[list[str]] = None) -> str:
+    """messages: [{"role": "user"|"assistant", "content": str}, ...] (the
+    Chat.jsx contract). file_ids: Files-API PDF ids (from upload_pdf) attached
+    as native document context on the final (current) user turn only —
+    earlier turns are sent as plain text history. Returns the reply text."""
+    if not messages:
+        return ""
+
+    *history, last = messages
+    content = [
+        {"type": "document", "source": {"type": "file", "file_id": file_id}}
+        for file_id in (file_ids or [])
+    ]
+    content.append({"type": "text", "text": last["content"]})
+
+    response = _get_client().beta.messages.create(
+        model=_model_name(),
+        max_tokens=1024,
+        messages=[*history, {"role": "user", "content": content}],
+        betas=[FILES_API_BETA],
+    )
+    return "".join(block.text for block in response.content if block.type == "text")

@@ -30,6 +30,18 @@ async function createQuestionFromFilter(text) {
   return res.json()
 }
 
+async function askChat(message, documentId) {
+  const res = await fetch(`${SERVER_URL}/api/chat`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages: [{ role: 'user', content: message }], document_id: documentId }),
+  })
+  if (!res.ok) throw new Error('Failed to get a chat answer')
+  const data = await res.json()
+  return data.reply
+}
+
 async function fetchCandidateAnswers(questionId) {
   const res = await fetch(`${SERVER_URL}/api/questions/${questionId}/candidate-answers`, { credentials: 'include' })
   if (!res.ok) throw new Error('Failed to load candidate answers')
@@ -57,13 +69,33 @@ export default function SideBar({ open, onClose }) {
   const [candidates, setCandidates] = useState([])
   const [index, setIndex] = useState(0)
   const [error, setError] = useState(null)
+  const [chatReply, setChatReply] = useState(null)
+  const [chatLoading, setChatLoading] = useState(false)
   const filterRef = useRef('')
+
+  // Last resort when the structured Q&A search comes up empty: ask Claude
+  // directly (grounded on the matched document's PDF via /api/chat when one
+  // is known) instead of just showing "No matching answers found."
+  const tryChatFallback = (message, documentId) => {
+    setChatReply(null)
+    setChatLoading(true)
+    askChat(message, documentId)
+      .then(setChatReply)
+      .catch(() => setChatReply(null))
+      .finally(() => setChatLoading(false))
+  }
 
   const handleSelectQuestion = option => {
     if (!option) return
     setQuestion(option)
     setIndex(0)
-    fetchCandidateAnswers(option.id).then(setCandidates).catch(e => setError(e.message))
+    setChatReply(null)
+    fetchCandidateAnswers(option.id)
+      .then(result => {
+        setCandidates(result)
+        if (result.length === 0) tryChatFallback(option.label, null)
+      })
+      .catch(e => setError(e.message))
   }
 
   // No question matched the typed filter — fall back to a document match, and
@@ -75,10 +107,15 @@ export default function SideBar({ open, onClose }) {
     searchDocuments(filter)
       .then(docs => {
         if (docs.length === 0) return
+        const documentId = docs[0].id
         return createQuestionFromFilter(filter).then(newQuestion => {
           setQuestion({ id: newQuestion.id, label: newQuestion.text })
           setIndex(0)
-          return fetchCandidateAnswers(newQuestion.id).then(setCandidates)
+          setChatReply(null)
+          return fetchCandidateAnswers(newQuestion.id).then(result => {
+            setCandidates(result)
+            if (result.length === 0) tryChatFallback(filter, documentId)
+          })
         })
       })
       .catch(e => setError(e.message))
@@ -132,7 +169,16 @@ export default function SideBar({ open, onClose }) {
         {!question ? (
           <div className="text-muted small">Select a question above.</div>
         ) : candidates.length === 0 ? (
-          <div className="text-muted small">No matching answers found.</div>
+          chatLoading ? (
+            <div className="text-muted small">Asking Claude…</div>
+          ) : chatReply ? (
+            <div className="sidebar-answer-card">
+              <div className="text-muted small mb-1">Claude's answer</div>
+              <div className="small">{withLineBreaks(chatReply)}</div>
+            </div>
+          ) : (
+            <div className="text-muted small">No matching answers found.</div>
+          )
         ) : (
           <div className="sidebar-answer-card">
             <div className="text-muted small mb-1">
