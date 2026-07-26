@@ -1,5 +1,6 @@
+- upload `pdf` documents use `Anthropic Files API`
+- import `pdf` documents in clean_db using `Anthropic Files API`
 - activate Sonnet-5 to act as the chatbot when looking for answers
-- use Anthropic Files API to upload PDF files, also create response message
+- after upload create response messages
 - integrate `/api/chat` with SideBar filter
-- when importing documents in clean_db use Anthropic Files API
-- when uploading documents use Anthropic Files API
+- in SideBar, when looking for questions, use `Anthropic Files API` and treat `answers` as the client.messages.create responses

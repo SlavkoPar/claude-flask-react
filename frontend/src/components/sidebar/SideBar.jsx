@@ -93,7 +93,13 @@ export default function SideBar({ open, onClose }) {
     fetchCandidateAnswers(option.id)
       .then(result => {
         setCandidates(result)
-        if (result.length === 0) tryChatFallback(option.label, null)
+        if (result.length === 0) {
+          // Ground the chat fallback on a matching document's PDF (via the
+          // Files API) when one exists, same as the from-filter path below.
+          searchDocuments(option.label)
+            .then(docs => tryChatFallback(option.label, docs[0]?.id ?? null))
+            .catch(() => tryChatFallback(option.label, null))
+        }
       })
       .catch(e => setError(e.message))
   }
