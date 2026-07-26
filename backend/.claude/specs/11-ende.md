@@ -1,1 +1,4 @@
-- create end point for calling clean_db.py
+- activate Sonnet-5 to act as the chatbot when looking for answers
+- use Anthropic Files API to upload PDF files, also create response message
+- integrate `/api/chat` with SideBar filter
+- when importing documents use Anthropic Files API

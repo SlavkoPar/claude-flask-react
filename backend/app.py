@@ -54,6 +54,7 @@ from database.db import (
     get_documents,
     get_document,
     get_document_pdf,
+    set_document_claude_file_id,
     create_document,
     update_document,
     delete_document,
@@ -722,13 +723,21 @@ def chat():
 
     # Optional: attach one document's original PDF as native context via the
     # Anthropic Files API, so Claude answers from the actual file (layout,
-    # tables, images) rather than its plain-text extraction.
+    # tables, images) rather than its plain-text extraction. Documents
+    # imported via clean_db.py already have a cached claude_file_id; anything
+    # else uploads on first use and caches it for next time.
     file_ids = []
     document_id = data.get("document_id")
     if document_id is not None:
-        pdf = get_document_pdf(document_id)
-        if pdf:
-            file_ids.append(claude_client.upload_pdf(pdf["pdf_filename"], pdf["pdf_data"]))
+        document = get_document(document_id)
+        if document and document.get("claude_file_id"):
+            file_ids.append(document["claude_file_id"])
+        else:
+            pdf = get_document_pdf(document_id)
+            if pdf:
+                file_id = claude_client.upload_pdf(pdf["pdf_filename"], pdf["pdf_data"])
+                set_document_claude_file_id(document_id, file_id)
+                file_ids.append(file_id)
 
     try:
         reply = claude_client.chat_reply(messages, file_ids)

@@ -177,6 +177,14 @@ def init_db():
         conn.commit()
     except sqlite3.OperationalError:
         pass  # column already exists
+    # Migration: add claude_file_id — caches the Anthropic Files API file_id
+    # for a document's PDF (uploaded at import/creation time) so callers like
+    # /api/chat can reference it without re-uploading the same bytes.
+    try:
+        conn.execute("ALTER TABLE documents ADD COLUMN claude_file_id TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # column already exists
     conn.close()
 
 
@@ -894,7 +902,7 @@ def get_document(document_id):
     conn = get_db()
     row = conn.execute(
         "SELECT id, user_id, group_id, description, content, link, created_at, pdf_filename, "
-        "(pdf_data IS NOT NULL) AS has_pdf FROM documents WHERE id = ?",
+        "claude_file_id, (pdf_data IS NOT NULL) AS has_pdf FROM documents WHERE id = ?",
         (document_id,),
     ).fetchone()
     conn.close()
@@ -903,6 +911,15 @@ def get_document(document_id):
     document = dict(row)
     document["has_pdf"] = bool(document["has_pdf"])
     return document
+
+
+def set_document_claude_file_id(document_id, claude_file_id):
+    """Caches an Anthropic Files API file_id for a document's PDF after an
+    on-demand upload, so later callers can reuse it instead of re-uploading."""
+    conn = get_db()
+    conn.execute("UPDATE documents SET claude_file_id = ? WHERE id = ?", (claude_file_id, document_id))
+    conn.commit()
+    conn.close()
 
 
 def get_document_pdf(document_id):
@@ -916,12 +933,14 @@ def get_document_pdf(document_id):
     return dict(row)
 
 
-def create_document(user_id, group_id, description, content, link, pdf_filename=None, pdf_data=None):
+def create_document(
+    user_id, group_id, description, content, link, pdf_filename=None, pdf_data=None, claude_file_id=None
+):
     conn = get_db()
     cursor = conn.execute(
-        "INSERT INTO documents (user_id, group_id, description, content, link, pdf_filename, pdf_data) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (user_id, group_id, description, content, link, pdf_filename, pdf_data),
+        "INSERT INTO documents (user_id, group_id, description, content, link, pdf_filename, pdf_data, "
+        "claude_file_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (user_id, group_id, description, content, link, pdf_filename, pdf_data, claude_file_id),
     )
     document_id = cursor.lastrowid
     conn.commit()
@@ -934,13 +953,17 @@ def create_document(user_id, group_id, description, content, link, pdf_filename=
     return document_id
 
 
-def update_document(document_id, group_id, description, content, link, pdf_filename=None, pdf_data=None):
+def update_document(
+    document_id, group_id, description, content, link, pdf_filename=None, pdf_data=None, claude_file_id=None
+):
     conn = get_db()
     if pdf_data is not None:
+        # A new PDF invalidates any cached claude_file_id for the old one —
+        # clears it (unless the caller already re-uploaded and passed the new id).
         conn.execute(
             "UPDATE documents SET group_id = ?, description = ?, content = ?, link = ?, "
-            "pdf_filename = ?, pdf_data = ? WHERE id = ?",
-            (group_id, description, content, link, pdf_filename, pdf_data, document_id),
+            "pdf_filename = ?, pdf_data = ?, claude_file_id = ? WHERE id = ?",
+            (group_id, description, content, link, pdf_filename, pdf_data, claude_file_id, document_id),
         )
     else:
         conn.execute(

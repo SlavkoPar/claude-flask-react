@@ -1,6 +1,7 @@
 """One-off script: wipe transactional tables, re-seed groups, rebuild the
 FAISS indexes, and re-import every PDF in database/import/ as a document."""
 import json
+import logging
 import os
 import sys
 
@@ -9,6 +10,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pypdf import PdfReader
 
 from database.db import get_db, init_db, seed_groups, create_document, get_or_create_uncategorized_group, IMPORT_DIR
+from database import claude_client
+
+logger = logging.getLogger(__name__)
 
 TABLES = ["history", "question_answers", "documents", "questions", "answers", "groups"]
 
@@ -89,6 +93,12 @@ def main():
 
         description = os.path.splitext(filename)[0].replace("_", " ").strip()
 
+        try:
+            claude_file_id = claude_client.upload_pdf(filename, pdf_data)
+        except Exception as e:
+            logger.warning("clean_db: Anthropic upload failed for %r, continuing without it: %s", filename, e)
+            claude_file_id = None
+
         document_id = create_document(
             user_id=1,
             group_id=group_id,
@@ -97,6 +107,7 @@ def main():
             link=None,
             pdf_filename=filename,
             pdf_data=pdf_data,
+            claude_file_id=claude_file_id,
         )
         created_documents.append({
             "id": document_id, "filename": filename, "group_id": group_id, "group_name": group_name,
