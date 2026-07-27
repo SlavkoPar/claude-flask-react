@@ -82,7 +82,6 @@ No new dependencies.
 
 
 - **Modify**: add an "Documents" link to navbar, visible only when `session.user_id` is set
-- import rows from `database/import/documents.json`
 
 - make autocomplete filter documents by description, and group
 - enable grouping of documents by group

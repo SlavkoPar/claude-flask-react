@@ -286,24 +286,6 @@ def seed_question_answers():
     conn.close()
 
 
-def seed_documents():
-    conn = get_db()
-    row = conn.execute("SELECT id FROM documents LIMIT 1").fetchone()
-    if row:
-        conn.close()
-        return
-    with open(os.path.join(IMPORT_DIR, "documents.json"), encoding="utf-8") as f:
-        documents = json.load(f)
-    for d in documents:
-        conn.execute(
-            "INSERT INTO documents (id, user_id, description, content, link, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (d["id"], 1, d["description"], d["content"], d["link"], d["created_at"]),
-        )
-    conn.commit()
-    conn.close()
-
-
 def get_user_by_email(email):
     conn = get_db()
     user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()

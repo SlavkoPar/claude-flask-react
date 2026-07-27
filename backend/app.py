@@ -48,7 +48,6 @@ from database.db import (
     get_candidate_answers,
     mark_answer_fixed,
     mark_answer_not_fixed,
-    seed_documents,
     backfill_document_groups,
     backfill_document_embeddings,
     get_documents,
@@ -119,7 +118,6 @@ with app.app_context():
     # seed_questions()
     # seed_answers()
     # seed_question_answers()
-    # seed_documents()
     # backfill_document_groups()
     # backfill_document_embeddings()
     # backfill_answer_embeddings()
