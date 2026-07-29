@@ -5,6 +5,7 @@ import os
 import ssl
 import urllib3
 import sqlite3
+import warnings
 from flask import Flask, request, jsonify, Response, stream_with_context, session, redirect, send_file
 from flask_cors import CORS
 from anthropic import Anthropic
@@ -71,6 +72,9 @@ load_dotenv()
 
 ssl._create_default_https_context = ssl._create_unverified_context
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+# pip-system-certs reads the Windows cert store for TLS trust (needed behind Avast's
+# HTTPS scanning); one unrelated malformed entry there triggers this harmless warning.
+warnings.filterwarnings("ignore", message="Bad certificate in Windows certificate store")
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 VITE_SERVER_URL = os.environ.get("VITE_SERVER_URL", "http://localhost:5000")

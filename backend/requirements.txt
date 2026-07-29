@@ -1,5 +1,6 @@
 flask
 flask-cors
+pip-system-certs  # use OS certificate store (fixes SSL errors behind Avast/corporate TLS inspection on Windows)
 anthropic
 pydantic
 python-dotenv
