@@ -2,6 +2,7 @@ import logging
 import os
 from typing import Optional
 
+import anthropic
 import httpx
 from anthropic import Anthropic
 from pydantic import BaseModel, Field
@@ -54,6 +55,19 @@ class ExtractionError(Exception):
     this and fall back to the existing regex-based extraction."""
 
 
+class InsufficientCreditsError(ExtractionError):
+    """The Anthropic account has no usable credit balance for this request.
+    Subclasses ExtractionError so existing `except ExtractionError` catches
+    still work unchanged; callers that want to react specifically (e.g. a
+    distinct HTTP 402 instead of a generic 500) can catch this one first."""
+
+
+def _wrap_anthropic_error(e: Exception) -> ExtractionError:
+    if isinstance(e, anthropic.APIStatusError) and "credit balance is too low" in str(e).lower():
+        return InsufficientCreditsError(str(e))
+    return ExtractionError(str(e))
+
+
 def extract_filter_matches(filter_text: str, documents: list[dict]) -> list[DocumentExtraction]:
     """documents: [{"id": int, "description": str|None, "text": str}, ...]
     (text = db._document_full_text output). Returns one DocumentExtraction
@@ -88,7 +102,7 @@ def extract_filter_matches(filter_text: str, documents: list[dict]) -> list[Docu
             output_format=FilterExtractionResult,
         )
     except Exception as e:
-        raise ExtractionError(str(e)) from e
+        raise _wrap_anthropic_error(e) from e
 
     if response.stop_reason != "end_turn" or response.parsed_output is None:
         raise ExtractionError(f"unusable response, stop_reason={response.stop_reason!r}")
@@ -120,7 +134,8 @@ def chat_reply(messages: list[dict], file_ids: Optional[list[str]] = None) -> st
     """messages: [{"role": "user"|"assistant", "content": str}, ...] (the
     Chat.jsx contract). file_ids: Files-API PDF ids (from upload_pdf) attached
     as native document context on the final (current) user turn only —
-    earlier turns are sent as plain text history. Returns the reply text."""
+    earlier turns are sent as plain text history. Returns the reply text.
+    Raises ExtractionError (or InsufficientCreditsError) on any API failure."""
     if not messages:
         return ""
 
@@ -131,10 +146,13 @@ def chat_reply(messages: list[dict], file_ids: Optional[list[str]] = None) -> st
     ]
     content.append({"type": "text", "text": last["content"]})
 
-    response = _get_client().beta.messages.create(
-        model=_model_name(),
-        max_tokens=1024,
-        messages=[*history, {"role": "user", "content": content}],
-        betas=[FILES_API_BETA],
-    )
+    try:
+        response = _get_client().beta.messages.create(
+            model=_model_name(),
+            max_tokens=1024,
+            messages=[*history, {"role": "user", "content": content}],
+            betas=[FILES_API_BETA],
+        )
+    except Exception as e:
+        raise _wrap_anthropic_error(e) from e
     return "".join(block.text for block in response.content if block.type == "text")

@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import re
 import sqlite3
 from werkzeug.security import generate_password_hash
 
@@ -509,53 +508,39 @@ def create_question_from_filter(user_id, text):
     """Called once a sidebar filter matches no question but does match a
     document: for every document that vector-matches the filter (oldest
     first), asks Claude to judge relevance and extract a question/answer pair
-    in a single batched call (claude_client.extract_filter_matches). Falls
-    back to the regex-based paragraph/sentence extraction
-    (_filter_paragraph_matches / _extract_sentence, plus the
-    description-only special case) if the Claude call fails for any reason.
-    Per document, the extracted `sentence` is used to find-or-create a
-    question by exact text — a brand-new question gets the extracted
-    answer(s) assigned immediately, an existing one only when the document is
-    newer than its modified_at. Returns the last document's question (or
-    None if no matched document yielded a usable sentence)."""
+    in a single batched call (claude_client.extract_filter_matches). Per
+    document, the extracted `sentence` is used to find-or-create a question
+    by exact text — a brand-new question gets the extracted answer(s)
+    assigned immediately, an existing one only when the document is newer
+    than its modified_at. Returns the last document's question (or None if
+    no matched document was judged relevant). Raises claude_client.ExtractionError
+    unchanged if the Claude call itself fails — the caller decides how to
+    surface that (vs. the "nothing relevant" case, which just returns None)."""
     documents = _documents_matching_filter(text)
     if not documents:
         return None
 
-    extractions_by_id = {}
-    try:
-        extractions = claude_client.extract_filter_matches(
-            text,
-            [
-                {
-                    "id": d["id"],
-                    "description": d["description"],
-                    "text": _document_full_text(d["content"]),
-                }
-                for d in documents
-            ],
-        )
-        extractions_by_id = {e.document_id: e for e in extractions}
-    except claude_client.ExtractionError as e:
-        logger.warning("questions/from-filter claude extraction failed, falling back to regex: %s", e)
+    extractions = claude_client.extract_filter_matches(
+        text,
+        [
+            {
+                "id": d["id"],
+                "description": d["description"],
+                "text": _document_full_text(d["content"]),
+            }
+            for d in documents
+        ],
+    )
+    extractions_by_id = {e.document_id: e for e in extractions}
 
     question = None
     for document in documents:
         extraction = extractions_by_id.get(document["id"])
-        short_desc = None
-        if extraction is not None:
-            if not extraction.relevant:
-                continue
-            sentence = extraction.question_text
-            paragraphs = [extraction.answer_detail] if extraction.answer_detail else []
-            short_desc = extraction.answer_short
-        else:
-            content_text = _document_full_text(document["content"])
-            paragraphs = _filter_paragraph_matches(document["content"], text)
-            sentence = _extract_sentence(content_text, text)
-            if not paragraphs and text.lower() in (document["description"] or "").lower():
-                paragraphs = [content_text]
-                sentence = _extract_sentence(document["description"], text)
+        if extraction is None or not extraction.relevant:
+            continue
+        sentence = extraction.question_text
+        paragraphs = [extraction.answer_detail] if extraction.answer_detail else []
+        short_desc = extraction.answer_short
         if not paragraphs or not sentence:
             continue
 
@@ -743,46 +728,6 @@ def _document_full_text(content):
     if isinstance(parsed, dict) and "pages" in parsed:
         return "\n\n".join(parsed["pages"])
     return content
-
-
-def _document_paragraphs(text):
-    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
-    if len(paragraphs) > 1:
-        return paragraphs
-    # No blank-line breaks (e.g. PDF-extracted text) — one paragraph per line
-    return [line.strip() for line in text.splitlines() if line.strip()]
-
-
-def _filter_paragraph_matches(content, filter_text):
-    """Find every paragraph containing `filter_text` (case-insensitive
-    substring) plus the paragraph right after it. A document can contain more
-    than one match."""
-    paragraphs = _document_paragraphs(_document_full_text(content))
-    needle = filter_text.lower()
-    matches = []
-    for i, para in enumerate(paragraphs):
-        if needle in para.lower():
-            pair = para if i + 1 >= len(paragraphs) else f"{para}\n{paragraphs[i + 1]}"
-            matches.append(pair)
-    logger.info("documents/filter-paragraphs filter=%r -> %d match(es)", filter_text, len(matches))
-    return matches
-
-
-def _extract_sentence(text, filter_text):
-    """Return the sentence around the first case-insensitive occurrence of
-    `filter_text` in `text`, bounded by a period, a newline, or the start/end
-    of the document. Used as the question text when a sidebar filter is saved
-    from a document match. Returns None if `filter_text` isn't found."""
-    idx = text.lower().find(filter_text.lower())
-    if idx == -1:
-        return None
-    start = max(text.rfind(".", 0, idx), text.rfind("\n", 0, idx)) + 1
-    match_end = idx + len(filter_text)
-    end_candidates = [e for e in (text.find(".", match_end), text.find("\n", match_end)) if e != -1]
-    end = min(end_candidates) if end_candidates else len(text)
-    sentence = text[start:end].strip()
-    logger.info("documents/extract-sentence filter=%r -> %r", filter_text, sentence)
-    return sentence or None
 
 
 def _documents_matching_filter(filter_text, k=5):

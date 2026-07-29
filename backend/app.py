@@ -661,7 +661,14 @@ def questions_create_from_filter():
     text = (data.get("text") or "").strip()
     if not text:
         return jsonify({"error": "Text is required"}), 400
-    question = create_question_from_filter(user_id, text)
+    try:
+        question = create_question_from_filter(user_id, text)
+    except claude_client.InsufficientCreditsError as e:
+        logger.warning("questions/from-filter: Anthropic account out of credits: %s", e)
+        return jsonify({"error": str(e)}), 402
+    except claude_client.ExtractionError as e:
+        logger.warning("questions/from-filter claude extraction failed: %s", e)
+        return jsonify({"error": str(e)}), 500
     if not question:
         logger.info("questions/from-filter text=%r -> no matching document content", text)
         return jsonify({"error": "Filter text was not found verbatim in any matched document"}), 404
@@ -755,6 +762,9 @@ def chat():
     try:
         reply = claude_client.chat_reply(messages, file_ids)
         return jsonify({"reply": reply})
+    except claude_client.InsufficientCreditsError as e:
+        logger.warning("chat: Anthropic account out of credits: %s", e)
+        return jsonify({"error": str(e)}), 402
     except Exception as e:
         logger.warning("chat failed: %s", e)
         return jsonify({"error": str(e)}), 500

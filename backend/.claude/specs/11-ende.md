@@ -4,3 +4,5 @@
 - after upload create response messages
 - integrate `/api/chat` with SideBar filter
 - in SideBar, when looking for questions, use `Anthropic Files API` and treat `answers` as the client.messages.create responses
+- do not use my algo for recognition of questions and answers, use claude Sonnet module
+- forward 'message': 'Your credit balance is too low to access the Anthropic API.' to frontend when it happend in questions/from-filter
