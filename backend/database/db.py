@@ -674,6 +674,12 @@ def delete_answer(answer_id):
 
 # ── Documents ─────────────────────────────────────────────────────────────────
 
+# Same cutoff as QUESTION_MATCH_MAX_DISTANCE (same embedding model/space) — without
+# it, FAISS always returns its k nearest vectors even when none are a real match,
+# surfacing unrelated documents for queries the index has nothing relevant for.
+DOCUMENT_MATCH_MAX_DISTANCE = 1.1
+
+
 def _document_embedding_text(description, content):
     return f"{description}\n\n{content}"
 
@@ -695,7 +701,7 @@ def _document_snippet(content, length=300):
 def search_documents(query, k=5):
     """Semantic search over document embeddings. Returns documents ranked by
     FAISS L2 distance (ascending, so most relevant first)."""
-    matches = vector_store.search("documents", query, k=k)
+    matches = vector_store.search("documents", query, k=k, max_distance=DOCUMENT_MATCH_MAX_DISTANCE)
     if not matches:
         return []
     distance_by_id = {m["id"]: m["distance"] for m in matches}

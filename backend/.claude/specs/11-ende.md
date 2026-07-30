@@ -6,3 +6,5 @@
 - in SideBar, when looking for questions, use `Anthropic Files API` and treat `answers` as the client.messages.create responses
 - do not use my algo for recognition of questions and answers, use claude Sonnet module
 - forward 'message': 'Your credit balance is too low to access the Anthropic API.' to frontend when it happend in questions/from-filter
+- make Python use Windows' certificate store
+- add DOCUMENT_MATCH_MAX_DISTANCE = 1.1
