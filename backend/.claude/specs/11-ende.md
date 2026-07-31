@@ -8,3 +8,4 @@
 - forward 'message': 'Your credit balance is too low to access the Anthropic API.' to frontend when it happend in questions/from-filter
 - make Python use Windows' certificate store
 - add DOCUMENT_MATCH_MAX_DISTANCE = 1.1
+- in SideBar, after click to `Fixed` do not show other answers

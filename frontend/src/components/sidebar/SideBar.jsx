@@ -72,6 +72,7 @@ export default function SideBar({ open, onClose }) {
   const [error, setError] = useState(null)
   const [chatReply, setChatReply] = useState(null)
   const [chatLoading, setChatLoading] = useState(false)
+  const [resolved, setResolved] = useState(false)
   const filterRef = useRef('')
 
   // Last resort when the structured Q&A search comes up empty: ask Claude
@@ -91,6 +92,7 @@ export default function SideBar({ open, onClose }) {
     setQuestion(option)
     setIndex(0)
     setChatReply(null)
+    setResolved(false)
     fetchCandidateAnswers(option.id)
       .then(result => {
         setCandidates(result)
@@ -119,6 +121,7 @@ export default function SideBar({ open, onClose }) {
           setQuestion({ id: newQuestion.id, label: newQuestion.text })
           setIndex(0)
           setChatReply(null)
+          setResolved(false)
           return fetchCandidateAnswers(newQuestion.id).then(result => {
             setCandidates(result)
             if (result.length === 0) tryChatFallback(filter, documentId)
@@ -142,7 +145,7 @@ export default function SideBar({ open, onClose }) {
   const handleFixed = async () => {
     try {
       await markFixed(question.id, current.id)
-      setIndex(i => (i + 1) % candidates.length)
+      setResolved(true)
     } catch (e) {
       setError(e.message)
     }
@@ -189,7 +192,7 @@ export default function SideBar({ open, onClose }) {
         ) : (
           <div className="sidebar-answer-card">
             <div className="text-muted small mb-1">
-              Answer {index + 1} of {candidates.length}
+              {resolved ? 'Marked as fixed' : `Answer ${index + 1} of ${candidates.length}`}
             </div>
             <div className="answer-row-title mb-2">
               {current.description}
@@ -197,10 +200,12 @@ export default function SideBar({ open, onClose }) {
                 <a href={current.link} target="_blank" rel="noreferrer" className="answer-row-link">↗</a>
               )}
             </div>
-            <div className="d-flex gap-2">
-              <Button variant="success" size="sm" onClick={handleFixed}>Fixed</Button>
-              <Button variant="outline-danger" size="sm" onClick={handleNotFixed}>Not Fixed</Button>
-            </div>
+            {!resolved && (
+              <div className="d-flex gap-2">
+                <Button variant="success" size="sm" onClick={handleFixed}>Fixed</Button>
+                <Button variant="outline-danger" size="sm" onClick={handleNotFixed}>Not Fixed</Button>
+              </div>
+            )}
             {current.related_documents?.length > 0 && (
               <div className="sidebar-related-documents">
                 <div className="text-muted small mb-1">Related documents</div>

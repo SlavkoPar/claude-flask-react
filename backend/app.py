@@ -24,6 +24,7 @@ from database.db import (
     get_or_create_google_user,
     get_groups,
     get_group_options,
+    get_or_create_uncategorized_group,
     get_group,
     create_group,
     update_group,
@@ -221,8 +222,10 @@ def groups_list():
 
 @app.route("/api/groups/options")
 def groups_options():
-    if not _current_user_id():
+    user_id = _current_user_id()
+    if not user_id:
         return jsonify({"error": "Not authenticated"}), 401
+    get_or_create_uncategorized_group(user_id)  # guarantee it's selectable, e.g. as the document-form default
     return jsonify(get_group_options())
 
 
