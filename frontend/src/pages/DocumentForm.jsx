@@ -30,7 +30,14 @@ export default function DocumentForm() {
   useEffect(() => {
     fetch(`${SERVER_URL}/api/groups/options`, { credentials: 'include' })
       .then(r => r.json())
-      .then(setGroupOptions)
+      .then(options => {
+        setGroupOptions(options)
+        const uncategorized = options.find(o => o.name === 'Uncategorized')
+        if (uncategorized) {
+          setValues(v => ({ ...v, group_id: uncategorized.id }))
+          initialValuesRef.current = { ...initialValuesRef.current, group_id: uncategorized.id }
+        }
+      })
   }, [])
 
   const handleFileChange = async e => {
@@ -42,7 +49,11 @@ export default function DocumentForm() {
     setError(null)
     try {
       const content = await extractPdf(file)
-      setValues(v => ({ ...v, content: extractDisplayText(content) }))
+      setValues(v => ({
+        ...v,
+        content: extractDisplayText(content),
+        description: file.name.replace(/\.pdf$/i, ''),
+      }))
     } catch (err) {
       setError(err.message)
     } finally {
