@@ -9,3 +9,5 @@
 - make Python use Windows' certificate store
 - add DOCUMENT_MATCH_MAX_DISTANCE = 1.1
 - in SideBar, after click to `Fixed` do not show other answers
+- in SideBar, when clicking on `Not Fixed` show single `related document` according to the doc in which `current answer` has been found. 
+- Let hight of the `Related document` extends to the bottom

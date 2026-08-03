@@ -208,7 +208,7 @@ export default function SideBar({ open, onClose }) {
             )}
             {current.related_documents?.length > 0 && (
               <div className="sidebar-related-documents">
-                <div className="text-muted small mb-1">Related documents</div>
+                <div className="text-muted small mb-1">Related document</div>
                 {current.related_documents.map(doc => (
                   <div key={doc.id} className="sidebar-related-document small">
                     <div>
