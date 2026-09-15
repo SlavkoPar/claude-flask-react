@@ -41,19 +41,19 @@ function Home() {
             <use href="/icons.svg#documentation-icon"></use>
           </svg> */}
           <p>
-            I used `Claude` for development, but also `claude-sonnet-5 & Anthropic Files API` on the Backend to find `Questions & Answers`.
+            I used `Claude` for FrontEnd/BackEnd development, but also `claude-sonnet-5 & Anthropic Files API` on the Backend to find `Questions & Answers`.
           </p>
           <p>
-            I tried to be `less specific` about `Claude`, to  enable Claude to ask me as many questions as possible, but I didn't really succeed.
+            I tried to be `less specific` about `Claude`, trying to force Claude to ask me as many questions as possible, but I didn't really succeed.
           </p>
           <p>
-            The app allows a company to create its Knowledge using `upload pdf files`.
+            The app allows a company to create its Knowledge, uploading `pdf` files.
           </p>
           <p>
-            `Q&A maintenance` allows for to maintain questions and answers that customers asked and accepting answers.
+            `Q&A maintenance` allows maintaining of questions and answers that customers already asked and answered.
           </p>
           <p>
-            Inside of right SideBar you can ask a question with text i.e. `remote controller`
+            Inside of right SideBar you can ask a question like: `remote controller`, and Claude-Sonnet will search upopaded `pdf` files
           </p>
       </section>
 

@@ -538,13 +538,21 @@
 /////////////////////////////
 /// Home
 
-.kard { 
-    background: var(--paper-card); 
-    border: 1px solid var(--border); 
-    border-radius: var(--radius-md); 
+.kard {
+    background: var(--paper-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
     padding: 1.5rem;
-    margin: 1.5rem; 
+    margin: 1.5rem;
     width: 80%;
+
+    p {
+      border: 1px solid $gray-300;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      background-color: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
 }
 
 /////////////////////////////
