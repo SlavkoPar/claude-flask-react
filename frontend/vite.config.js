@@ -20,12 +20,12 @@ export default defineConfig(({ command, mode }) => {
     server: {
       proxy: isProduction ? {
         '/api': {
-          target: 'https://knowledge-i4sn.onrender.com', // Your Flask backend url
+          target: 'https://molers.onrender.com', // Your Flask backend url
           changeOrigin: true,
           secure: false,
         },
         '/auth': {
-          target: 'https://knowledge-i4sn.onrender.com', // Your Flask backend url
+          target: 'https://molers.onrender.com', // Your Flask backend url
           changeOrigin: true,
           secure: true,
         }
